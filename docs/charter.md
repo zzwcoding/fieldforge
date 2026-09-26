@@ -79,7 +79,7 @@
 | Q5 | 真实数据 license 对生成物的传导 | 需逐条读 Volve/FORCE/Norne 原始许可条款 |
 | Q6 | 第一个内部用户与验收场景 | 候选：teach-petro-agent 教学/面试演示（可为 Petro-Agent 平台叙事供数）；待 Owner 定 |
 | Q7 | LLM 层模型选型（云端 vs 国产化/本地化约束） | 待定，M4 前拍板即可 |
-| Q8 | 扫参算力成本（油藏模拟单次运行分钟–小时级） | **探测完成（2026-09-25，票 [M2-T0](../tickets/M2-T0-env-feasibility.md)）**：本机四路均不可行——brew 无公式且官方 tap 2018 年停更、Docker Hub 网络不可达且未配镜像加速、conda-forge 无包、GitHub release 无 macOS 产物。**实测挂起**，两条候选路径待拍板：A 本机 Docker Desktop + 镜像加速（需改 daemon.json）；B GitHub Actions ubuntu runner 经 OPM PPA 实测（需建远端仓，属外发动作） |
+| Q8 | 扫参算力成本（油藏模拟单次运行分钟–小时级） | **路径 A 深度执行后挂起（2026-09-27，票 [M2-T0](../tickets/M2-T0-env-feasibility.md)）**：定论——OPM 无 Docker 官方镜像、无 macOS 二进制，唯一直达渠道是 Ubuntu PPA；本机已配镜像加速并验证 curl 逐 blob 组装路线（ubuntu:24.04 已入本地镜像库），但 **Docker Desktop 容器子系统挂死（docker create 都卡）阻断**，需 Owner 在 GUI 层检查/重置；或转路径 B（GitHub Actions）/ C（SSH Linux 服务器）实测 |
 
 ## 8. 决策记录
 
