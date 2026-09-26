@@ -52,6 +52,7 @@ def write_manifest(
     fmt: str,
     tables: dict[str, list[dict]],
     conformance_cells: int,
+    injection_info: dict | None = None,
 ) -> dict:
     manifest = {
         "tool": "fieldforge",
@@ -78,6 +79,7 @@ def write_manifest(
             for name, ent in schema.entities.items()
         },
         "conformance": {"status": "pass", "checked_cells": conformance_cells},
+        "injection": injection_info or {"enabled": False},
     }
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest

@@ -5,7 +5,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import check, emit, engine
+from . import check, emit, engine, inject
 from .schema import SchemaError, load_recipe, load_schema
 
 
@@ -33,6 +33,9 @@ def main(argv=None) -> int:
     fmt = args.format or recipe.fmt
 
     tables = engine.Engine(schema, recipe, seed).generate()
+    injection_info = None
+    if recipe.injection:
+        tables, injection_info = inject.apply_injections(schema, tables, recipe.injection, seed)
     violations = check.check_conformance(schema, tables)
     if violations:
         print(f"符合性检查未通过（{len(violations)} 条），未写出任何文件：", file=sys.stderr)
@@ -54,6 +57,7 @@ def main(argv=None) -> int:
         fmt=fmt,
         tables=tables,
         conformance_cells=cells,
+        injection_info=injection_info,
     )
     print(f"已生成 {len(schema.entities)} 张表 → {out_dir}/（seed={seed}，格式 {fmt}）")
     for item in manifest["entities"]:

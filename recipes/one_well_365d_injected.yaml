@@ -1,0 +1,29 @@
+# M2-T2 演示配方：一口井 × 365 天 + 注入（坏点 / 缺测 / 连续停机）
+# 运行：python3 -m fieldforge generate --recipe recipes/one_well_365d_injected.yaml --out out-injected
+# 注入随机流独立于骨架生成流（injection.seed 与配方 seed 相加派生），注入点由 seed 复现。
+recipe: one_well_365d_injected
+description: 一口井 × 365 天，注入坏点/缺测/连续停机（M2-T2 v1，挂 M1 规则骨架）
+schema: schemas/core-v0.yaml
+seed: 20260925
+period:
+  start: 2025-01-01
+  days: 365
+counts:
+  well: 1
+outputs:
+  format: csv
+injection:
+  seed: 1001
+  maintenance_window:
+    entity: production_daily
+    count: 2
+    length_days: [3, 8]
+  spike:
+    entity: production_daily
+    field: oil_rate
+    prob_per_day: 0.05
+    factor: [1.5, 2.2]
+  gap:
+    entity: production_daily
+    count: 3
+    length_days: [1, 2]
