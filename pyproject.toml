@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldforge"
+version = "0.1.0"
+description = "油气领域专用合成数据生成工作台（M1：规则打底 tracer bullet）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = ["PyYAML>=6"]
+
+[project.scripts]
+fieldforge = "fieldforge.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["fieldforge*"]
+
+[tool.setuptools.package-data]
+fieldforge = ["seeds/*.json"]

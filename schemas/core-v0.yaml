@@ -1,0 +1,152 @@
+# fieldforge 核心 schema v0.1 —— M1 最小集（拍板 Q2：生产时序先行）
+#
+# 纪律：
+# - 每个字段必须带 unit（物理量）或 enum 取值域，或数值量程 range——生成器与符合性检查共用同一份声明。
+# - 生产时序骨架为 M1 规则模型（Arps 递减 + 含水爬升 + 停机事件 + 噪声）；
+#   M2 将由 OPM Flow 独立进程扫参替换骨架，模型接口不变。
+# - 字典种子（油田名/区块码/传感器目录）在 fieldforge/seeds/dicts.json，全部虚构。
+
+schema: fieldforge-core
+version: 0.1.0
+description: 油气田合成数据核心 schema（M1：井 / 井筒 / 传感器通道 / 日生产台账）
+
+entities:
+
+  well:
+    description: 井（主实体，先生成）
+    primary_key: well_id
+    fields:
+      field_name:
+        type: string
+        generator: oil_field_name        # 从 seeds.oil_fields 抽一个虚构油田，同井内缓存供 well_id 用
+        description: 所属（虚构）油田名
+      well_id:
+        type: string
+        generator: well_id               # 用同井 field_name 对应区块码拼 形如 CF-3-15
+        description: 井标识（虚构编码）
+      well_type:
+        type: enum
+        values: [生产井, 注水井, 评价井]
+        weights: [0.6, 0.3, 0.1]
+        description: 井型
+      spud_date:
+        type: date
+        generator: date_range
+        params: {start: 2008-01-01, end: 2022-12-31}
+        description: 开钻日期
+      longitude:
+        type: float
+        unit: °
+        range: [120.5, 122.0]
+        generator: float_range
+        description: 井口经度（虚构井位，形状参考渤海湾盆地范围）
+      latitude:
+        type: float
+        unit: °
+        range: [37.0, 38.5]
+        generator: float_range
+        description: 井口纬度（虚构井位）
+
+  wellbore:
+    description: 井筒（M1 每井 1 个主井筒）
+    primary_key: wellbore_id
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well, field: well_id}
+        description: 所属井
+      wellbore_id:
+        type: string
+        generator: wellbore_id           # {well_id}-B1
+        description: 井筒标识
+      measured_depth:
+        type: float
+        unit: m
+        range: [1500, 4800]
+        generator: float_range
+        description: 测量井深
+      completion_type:
+        type: enum
+        values: [射孔完井, 筛管完井, 裸眼完井]
+        weights: [0.7, 0.2, 0.1]
+        description: 完井方式
+      completion_date:
+        type: date
+        generator: date_after_parent     # 父井 spud_date + 90~400 天
+        params: {parent_field: spud_date, min_days: 90, max_days: 400}
+        description: 完井日期（晚于开钻）
+
+  sensor_channel:
+    description: 传感器通道注册表（M1 每井挂标准 3 通道；日度读数时序随 F4 在 M2 落）
+    primary_key: channel_id
+    model: standard_sensor_set
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well, field: well_id}
+        description: 所属井
+      channel_id:
+        type: string
+        generator: channel_id            # {well_id}-{code}
+        description: 通道标识
+      channel_code:
+        type: string
+        description: 通道编码（来自传感器目录）
+      channel_name:
+        type: string
+        description: 通道名称
+      unit:
+        type: string
+        description: 计量单位
+      range_min:
+        type: float
+        description: 量程下限
+      range_max:
+        type: float
+        description: 量程上限
+      sample_interval_min:
+        type: integer
+        unit: min
+        description: 采样间隔
+
+  production_daily:
+    description: 日生产台账（单井日度一行；M1 规则骨架，M2 换物理打底）
+    primary_key: [well_id, prod_date]
+    model: arps_production
+    model_params:
+      initial_oil_rate_t_per_d: [15, 50]   # 初产
+      arps_b: [0.4, 0.9]                   # Arps 递减指数
+      arps_di_per_day: [0.0002, 0.0008]    # 名义递减率（1/日）
+      gor_m3_per_m3: [60, 180]             # 生产气油比
+      water_cut_start: [0.05, 0.20]        # 期初含水率
+      water_cut_end: [0.50, 0.75]          # 期末含水率
+      downtime_prob_per_day: 0.02          # 停机/欠产日概率
+      noise_sigma: 0.03                    # 乘性噪声（对数正态）
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well, field: well_id}
+        description: 所属井
+      prod_date:
+        type: date
+        description: 生产日期
+      producing_hours:
+        type: float
+        unit: h
+        range: [0, 24]
+        description: 当日生产小时数（0=停机日）
+      oil_rate:
+        type: float
+        unit: t/d
+        range: [0, 200]
+        description: 日产油量
+      water_rate:
+        type: float
+        unit: m3/d
+        range: [0, 500]
+        description: 日产水量
+      gas_rate:
+        type: float
+        unit: 10^4 m3/d
+        range: [0, 50]
+        description: 日产气量

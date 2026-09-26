@@ -1,0 +1,15 @@
+{
+  "_notice": "本字典全部为虚构种子数据，仅用于合成数据生成，不代表任何真实油田、企业、设备或编码体系。",
+  "oil_fields": [
+    { "name": "长风", "code": "CF" },
+    { "name": "青云", "code": "QY" },
+    { "name": "白鹭洲", "code": "BLZ" },
+    { "name": "金沙湖", "code": "JSH" },
+    { "name": "望海", "code": "WH" }
+  ],
+  "sensor_catalog": [
+    { "code": "WHP", "name": "井口油压", "unit": "MPa", "range_min": 0.0, "range_max": 35.0, "sample_interval_min": 5 },
+    { "code": "CGP", "name": "井口套压", "unit": "MPa", "range_min": 0.0, "range_max": 30.0, "sample_interval_min": 5 },
+    { "code": "WHT", "name": "井口温度", "unit": "°C", "range_min": 0.0, "range_max": 120.0, "sample_interval_min": 15 }
+  ]
+}

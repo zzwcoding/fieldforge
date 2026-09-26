@@ -1,0 +1,14 @@
+# M1 tracer bullet 配方：一口生产井 × 365 天日度生产台账
+# 运行：python3 -m fieldforge generate --recipe recipes/one_well_365d.yaml --out out
+# 换种子：--seed N（同时覆盖配方 seed）；换输出格式：--format csv|parquet
+recipe: one_well_365d
+description: 一口井 × 365 天（well / wellbore / sensor_channel / production_daily 四表）
+schema: schemas/core-v0.yaml
+seed: 20260925
+period:
+  start: 2025-01-01
+  days: 365
+counts:
+  well: 1
+outputs:
+  format: csv
