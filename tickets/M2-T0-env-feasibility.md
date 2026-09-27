@@ -16,7 +16,7 @@
 ### 本机执行轨迹（A 路径）
 
 1. **镜像源**：`~/.docker/daemon.json` 已配 `registry-mirrors`（docker.1ms.run / m.daocloud.io / xuanyuan.me，均探活；原文件备份 `daemon.json.bak-20260925`，还原 `cp ~/.docker/daemon.json.bak-20260925 ~/.docker/daemon.json`）。实测 daocloud 对本镜像白名单外（403 DENIED），1ms.run 的 token/manifest/blob API 全通。
-2. **daemon 直拉挂死**：`docker pull`（含 `--debug`、含镜像源前缀、含 hello-world 对照）全部无输出挂死；`crane`（Go 栈）同样挂死；**宿主 curl（libcurl）对同一端点 IPv4/IPv6 均秒通**——Go 网络栈挂而 libcurl 通的根因待查（疑似 macOS DNS 解析路径差异）。
+2. **daemon 直拉"挂死"实为极慢**：`docker pull docker.1ms.run/openporousmedia/flow:latest` 发起后约 30–40 分钟无输出，最终返回 `failed to resolve reference ... not found`——daemon 到镜像源**是通的**（镜像源对 cache-miss 镜像代理上游极慢，推测），且"镜像不存在"获得 daemon 侧第二次独立确认；`crane` 同样慢/挂，宿主 curl（libcurl）秒通。结论修正：网络不是黑洞，"不存在镜像 + 慢代理"叠加了排障噪音。
 3. **绕行成功一半**：`scripts/docker-load-via-mirror.sh`（curl 逐 blob 下载 + sha256 校验 + OCI layout 组装 + `docker load`）已验证可行，`ubuntu:24.04`(arm64) 已入本地镜像库。
 4. **容器子系统挂死（阻断点）**：干净重启后 `docker run -d` 连容器都未创建、`docker create` 纯元数据操作也挂死——runc/containerd 层故障，CLI 层无解。**需 Owner 打开 Docker Desktop GUI 检查**（可能有等密码/更新的对话框；或在 Troubleshoot 里做 Reset，注意 Reset 会清掉现有镜像，含 agentjiaotu 系列）。
 
