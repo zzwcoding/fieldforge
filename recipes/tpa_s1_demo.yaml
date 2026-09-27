@@ -11,3 +11,6 @@ period:
   days: 365
 outputs:
   format: csv
+freshness:
+  tier: offline
+  watermark: T-1

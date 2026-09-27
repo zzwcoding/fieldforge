@@ -64,6 +64,7 @@
 | **M2 物理打底**（✅ 2026-09-27 收口，[M2-T0~T3](../tickets/)） | T0 算力实测（flow 2026.04 容器化）+ T1 FlowAdapter（容器扫参→production_daily 同构骨架）+ T2 噪声/工况注入器 v1 + T3 传感器日度读数（schema 0.2.0 五表） | ~~扫参 N 方案产生产时序骨架，注入扰动后通过物理一致性指标 v0~~ 粗精两档已实测定档（SPE1 级 0.45s / Norne 级 164s）；物理一致性指标属 M3 评估闸门 |
 | **M3 评估闸门 v1**（✅ 2026-09-27 收口，[M3-T1](../tickets/M3-T1-eval-gate.md)） | 三族指标：质量（账实一致/非退化/参照 KS）+ 隐私（主键/组合重复率，anonymeter 攻击留 `--real` 接口）+ 物理一致性（物质平衡/停机/量程/静稳/递减率，自研） | ~~一份样例评估报告，质量/隐私/物理三族指标齐全~~ 双样例随仓：干净数据 pass（10+1 skipped）、注入数据 fail（闸门抓坏点实证） |
 | **P0 数据合同对齐**（✅ 2026-09-27 收口，[P0-T1](../tickets/P0-T1-contract-alignment.md)） | `schemas/tpa-contract-v0.1.yaml` 对齐 teach-petro-agent 生产域 8 表字典（含主数据 profile 120 井=86 EW+34 IW、区块密度表、行业编码对照）；与 core-v0 并存零回归 | 一条命令 11 表 175,842 行，oil_production_daily 31,390 行正对齐平台大结果锚点；26 测试稳定全绿 |
+| **P1 脏特征与规则族**（✅ 2026-09-27 收口，[P1-T1/T2/T3](../tickets/)） | T1 脏特征注入器家族 10 类（v2.0.0，nullable/dirty_mode 承接）+ T2 平台规则族 r1–r12 机判（判据逐字对齐 tpa 设定书 §4）+ T3 freshness/批次元数据入 manifest | 双样例随仓：干净基线 12 规则零误报 pass；脏特征交付物 9 fail + 1 warn 全数被逮、计数与注入账吻合 |
 | **M4 LLM 文档层** | L4 班报/工单叙述化 + schema 校验回流 | 同一口井的结构化点表 + 配套文档语料 |
 | **M5 第二梯队** | 测井曲线（welly/bruges 物理合成）、合成地震（devito 正演） | 另立票再拆 |
 

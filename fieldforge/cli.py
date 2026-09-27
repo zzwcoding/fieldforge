@@ -54,7 +54,8 @@ def _cmd_generate(args) -> int:
     injection_info = None
     if recipe.injection:
         tables, injection_info = inject.apply_injections(schema, tables, recipe.injection, seed)
-    violations = check.check_conformance(schema, tables)
+    dirty_ok = bool(recipe.injection and recipe.injection.get("dirty_mode"))
+    violations = check.check_conformance(schema, tables, dirty_ok)
     if violations:
         print(f"符合性检查未通过（{len(violations)} 条），未写出任何文件：", file=sys.stderr)
         for v in violations:

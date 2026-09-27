@@ -144,8 +144,8 @@ entities:
         description: 电流
       stop_reason_code:
         type: enum
-        values: [RUNNING, BELT, MOTOR, PUMP, POWER]
-        description: 停机原因码（新编码）
+        values: [RUNNING, BELT, MOTOR, PUMP, POWER, R3, R4, R5, R6, LEGACY-OLD]
+        description: 停机原因码（新编码 + 旧编码并存，映射表全命中为规则 8 通过态；LEGACY-OLD 为未知码挂样本）
 
   oil_production_daily:
     description: 日产计量（★核心事实源；EW 井 × 日；86×365 = 31,390 行对齐大结果锚点）
@@ -173,7 +173,8 @@ entities:
         type: float
         unit: t
         range: [0, 200]
-        description: 日产油量（吨）
+        nullable: true
+        description: 日产油量（吨；字典允许缺失，非空率 ≥99.5% 即规则 2 通过态）
       liquid_output:
         type: float
         unit: m3
@@ -287,10 +288,12 @@ entities:
         description: 施工日期
       effective_from:
         type: date
-        description: 有效期起
+        nullable: true
+        description: 有效期起（30% 缺失为 P1 脏特征交付物）
       effective_to:
         type: date
-        description: 有效期止
+        nullable: true
+        description: 有效期止（30% 缺失为 P1 脏特征交付物）
       incr_oil_annual:
         type: float
         unit: t

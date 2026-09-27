@@ -41,7 +41,7 @@ class M2T2Injection(unittest.TestCase):
             manifest = json.loads((Path(di) / "manifest.json").read_text(encoding="utf-8"))
             inj = manifest["injection"]
             self.assertTrue(inj["enabled"])
-            self.assertEqual(inj["version"], "1.0.0")
+            self.assertEqual(inj["version"], "2.0.0")
             counts = inj["counts"]
             self.assertGreater(counts["spike"]["points"], 0)      # 确定性种子下必有坏点
             self.assertGreater(counts["maintenance_window"]["days"], 0)

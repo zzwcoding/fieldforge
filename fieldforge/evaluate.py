@@ -8,6 +8,9 @@
   接口留 --real，未提供则 skipped——不硬编。
 - 物理一致性族（自研，差异化卖点）：物质平衡（含水率界）、停机一致性（hours=0⇒产量 0）、
   传感器量程合法性、停机静稳、日间递减率合理性。
+- 平台规则族（P1-T2，tpa-contract 自动启用）：规则 1–10、12 逐条机判（判据对齐
+  tpa/docs/business-setting.md §4 质量规则库）；规则 11 为实时域（教学演绎）如实 skipped；
+  13–20 维度由既有指标覆盖（枚举合法=符合性、极值/波动率=q2/f5、引用完整=fk、钩稽=r12）。
 - 判定：任一 fail → 闸门不过（exit 1）；skipped 不计失败。
 """
 from __future__ import annotations
@@ -16,8 +19,9 @@ import bisect
 import csv
 import json
 import math
+import re
 import statistics
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 _BUILTIN_PK = {
@@ -285,6 +289,140 @@ def f_decline(data: dict) -> dict:
                    "相邻生产日油量比值上限：pass<2× / warn<3×（注入尖刺按设计可达 2.2×）")
 
 
+# ------------------------------------------------- 平台规则族（tpa-contract）
+
+def _platform_rules(data: dict) -> list[dict]:
+    """规则 1–10、12 逐条机判（判据对齐 tpa 设定书 §4；规则 11 实时域 skipped）。"""
+    prod = data.get("oil_production_daily", [])
+    rules: list[dict] = []
+
+    # 规则 1 唯一性：(well_id, prod_date)
+    keys = [(r.get("well_id"), r.get("prod_date")) for r in prod]
+    dup = len(keys) - len(set(keys))
+    rules.append(_metric("r1", "规则", "规则1 (well_id,prod_date) 唯一性",
+                         "pass" if dup == 0 else "fail", {"duplicates": dup}))
+
+    # 规则 2 完整性：oil_output 非空率 ≥99.5%
+    empty = sum(1 for r in prod if r.get("oil_output") in ("", None))
+    ratio = empty / len(prod) if prod else 0.0
+    rules.append(_metric("r2", "规则", "规则2 oil_output 非空率 ≥99.5%",
+                         "pass" if ratio <= 0.005 else "fail",
+                         {"empty": empty, "ratio": round(ratio, 5)}))
+
+    # 规则 3 准确性：折算密度 = 油/(液×(1−含水)) ∈ [0.82, 0.98]
+    bad3 = checked3 = 0
+    for r in prod:
+        oil, liq, wc = _num(r, "oil_output"), _num(r, "liquid_output"), _num(r, "water_cut")
+        if not oil or not liq or wc is None or wc >= 100:
+            continue
+        checked3 += 1
+        if not 0.82 <= oil / (liq * (1 - wc / 100)) <= 0.98:
+            bad3 += 1
+    rules.append(_metric("r3", "规则", "规则3 单位一致性（折算密度带）",
+                         "pass" if bad3 == 0 else "fail", {"violations": bad3, "checked": checked3}))
+
+    # 规则 4 一致性：计量含水 vs 化验含水 ≤5pp（井号+日期双键联结）
+    lab = {(r.get("well_id"), r.get("sample_date")): _num(r, "water_cut_lab")
+           for r in data.get("fluid_test", [])}
+    diffs = [abs(wc - lab[k]) for r in prod
+             if (k := (r.get("well_id"), r.get("prod_date"))) in lab
+             and (wc := _num(r, "water_cut")) is not None and lab[k] is not None]
+    bad4 = sum(1 for d in diffs if d > 5.0)
+    rules.append(_metric("r4", "规则", "规则4 计量 vs 化验含水 ≤5pp",
+                         "pass" if bad4 == 0 else "fail",
+                         {"violations": bad4, "compared": len(diffs)}))
+
+    # 规则 5 值域：water_cut∈[0,100]、open_days∈[0,24]
+    bad5 = sum(1 for r in prod if not (
+        0.0 <= (_num(r, "water_cut") or 0.0) <= 100.0
+        and 0.0 <= (_num(r, "open_days") or 0.0) <= 24.0))
+    rules.append(_metric("r5", "规则", "规则5 water_cut/open_days 值域",
+                         "pass" if bad5 == 0 else "fail", {"violations": bad5}))
+
+    # 规则 6 及时性：批次水位 ≤T-1（-T3 补录为超窗样本）
+    over = sum(1 for r in data.get("well_overhaul", [])
+               if str(r.get("batch_id", "")).endswith("-T3"))
+    rules.append(_metric("r6", "规则", "规则6 批次水位 ≤T-1",
+                         "pass" if over == 0 else "fail", {"late_batches": over}))
+
+    # 规则 7 规范性：井号归一化（N2/N-2 → N-02）
+    bad7 = sum(1 for r in prod if not re.match(r"^[A-Z]-\d{2}$", str(r.get("well_id", ""))))
+    rules.append(_metric("r7", "规则", "规则7 井号归一化",
+                         "pass" if bad7 == 0 else "fail", {"legacy_rows": bad7}))
+
+    # 规则 8 规范性：stop_reason_code 新旧编码映射全命中
+    known = {"RUNNING", "BELT", "MOTOR", "PUMP", "POWER", "R3", "R4", "R5", "R6"}
+    bad8 = sum(1 for r in data.get("equip_status", [])
+               if r.get("stop_reason_code") not in known)
+    rules.append(_metric("r8", "规则", "规则8 停机原因码映射全命中",
+                         "pass" if bad8 == 0 else "fail", {"unknown_codes": bad8}))
+
+    # 规则 9 唯一性/状态机：档案"生产中"但近 30 日全停 = 状态滞后
+    tail = max((str(r["prod_date"]) for r in prod), default=None)
+    lag = []
+    if tail is not None:
+        cut = (date.fromisoformat(tail) - timedelta(days=30)).isoformat()
+        status_of = {w.get("well_id"): w.get("current_status")
+                     for w in data.get("well_info", [])}
+        ran30: dict[str, bool] = {}
+        for r in prod:
+            if r["prod_date"] >= cut:
+                ran30[r["well_id"]] = ran30.get(r["well_id"], False) or (_num(r, "open_days") or 0) > 0
+        lag = [w for w, ran in ran30.items()
+               if not ran and status_of.get(w) == "生产中"]
+    rules.append(_metric("r9", "规则", "规则9 状态机合法迁移（滞后检测）",
+                         "pass" if not lag else "fail", {"lagged_wells": lag}))
+
+    # 规则 10 一致性：连续 30 日恒值告警（生产行）
+    worst = 0
+    wells_ordered: dict[str, list] = {}
+    for r in prod:
+        wells_ordered.setdefault(r.get("well_id"), []).append(r)
+    for rows in wells_ordered.values():
+        run, prev = 1, None
+        for r in rows:
+            v = r.get("oil_output")
+            if _num(r, "open_days") == 0.0:
+                run, prev = 1, None
+                continue
+            run = run + 1 if v == prev else 1
+            prev = v
+            worst = max(worst, run)
+    rules.append(_metric("r10", "规则", "规则10 恒值 30 日告警",
+                         "pass" if worst < 30 else "warn", {"longest_constant_run": worst},
+                         "判据=告警级（warn），恒值窗口属仪表卡死信号"))
+
+    # 规则 11 实时域：传感器零值 2 小时告警（教学演绎，日粒度数据不可判）
+    rules.append(_metric("r11", "规则", "规则11 传感器零值 2 小时告警", "skipped", None,
+                         "实时域规则（tpa 设定书自标教学演绎）；日粒度数据不可判，接入 15 分钟档后启用"))
+
+    # 规则 12 一致性：区块月物质平衡偏差 ≤3%（结算净重 vs 产量合计 ×(1−损耗)）
+    block_of = {w.get("well_id"): w.get("block_name") for w in data.get("well_info", [])}
+    sums: dict[tuple, float] = {}
+    for r in prod:
+        key = (block_of.get(r["well_id"]), str(r.get("prod_date"))[:7])
+        sums[key] = sums.get(key, 0.0) + (_num(r, "oil_output") or 0.0)
+    worst_dev = 0.0
+    checked12 = 0
+    for r in data.get("monthly_settlement", []):
+        key = (r.get("block_name"), str(r.get("settle_date"))[:7])
+        total = sums.get(key, 0.0)
+        net = _num(r, "net_weight")
+        if not total or net is None:
+            continue
+        checked12 += 1
+        worst_dev = max(worst_dev, abs(net / total - 1.0))
+    rules.append(_metric("r12", "规则", "规则12 区块月物质平衡偏差 ≤3%",
+                         "pass" if worst_dev <= 0.03 else "fail",
+                         {"max_dev": round(worst_dev, 4), "checked": checked12}))
+
+    # 规则 13–20（引用完整/跨表一致/枚举合法/正则格式/极值/波动率/钩稽/scrub）：
+    # 维度由既有指标覆盖——枚举合法=符合性检查、极值/波动率=q2/f5、引用完整=fk、钩稽=r12。
+    rules.append(_metric("r13_20", "规则", "规则13–20（泛维度）", "skipped", None,
+                         "枚举合法/极值/波动率/引用完整/钩稽由符合性检查与 q2/f5/r12 覆盖，专条规则待提取件二核对后启用"))
+    return rules
+
+
 # ---------------------------------------------------------------- 闸门主流程
 
 def evaluate(data_dir: Path, reference: Path | None = None, real_dir: str | None = None) -> dict:
@@ -308,6 +446,8 @@ def evaluate(data_dir: Path, reference: Path | None = None, real_dir: str | None
         f_shutdown_static(data),
         f_decline(data),
     ]
+    if (manifest.get("schema") or {}).get("name") == "tpa-contract":
+        metrics += _platform_rules(data)
     counts = {s: sum(1 for m in metrics if m["status"] == s)
               for s in ("pass", "warn", "fail", "skipped")}
     overall = "fail" if counts["fail"] else ("warn" if counts["warn"] else "pass")

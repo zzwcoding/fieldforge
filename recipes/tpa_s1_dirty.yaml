@@ -1,0 +1,29 @@
+# P1 演示配方：tpa 数据合同 · 脏特征交付物（平台质量规则族的挂样本来源）
+# 与 tpa_s1_demo 同骨架同种子；注入器家族产 9 类脏特征，dirty_mode 跳过 fk/enum 符合性。
+# 运行：python3 -m fieldforge generate --recipe recipes/tpa_s1_dirty.yaml --out out-tpa-dirty
+# 每条脏特征对应的平台规则：见 fieldforge/inject.py 头注与 tickets/P1-T1。
+recipe: tpa_s1_dirty
+description: 120 井 × 365 天 · A/B 班重复 / 配产双值 / 单位误录 / 旧井号 / 恒值30日 / T-3批次 / 状态滞后 / 新旧编码 / 措施缺效期缺失 / 化验打架
+schema: schemas/tpa-contract-v0.1.yaml
+seed: 20260927
+period:
+  start: 2025-09-01
+  days: 365
+outputs:
+  format: csv
+freshness:
+  tier: offline
+  watermark: T-1
+injection:
+  dirty_mode: true
+  seed: 3001
+  shift_duplicate: {count: 40}                       # 规则 1
+  plan_dual_value: {factor: 1.1}                     # 规则 1 + 口径双值
+  unit_misentry: {count: 12}                         # 规则 3
+  well_id_legacy: {count: 25}                        # 规则 7
+  stale_constant: {wells: 3, window: 30}             # 规则 10
+  late_batch: {entity: well_overhaul, ratio: 0.25}   # 规则 6
+  status_lag: {count: 3}                             # 规则 9
+  legacy_stop_code: {ratio: 0.15, unknown_count: 1}  # 规则 8
+  measure_missing: {ratio: 0.3}                      # 完整性
+  lab_conflict: {count: 15}                          # 规则 4

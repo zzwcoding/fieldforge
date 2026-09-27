@@ -1,0 +1,207 @@
+{
+  "tool": "fieldforge",
+  "version": "0.1.0",
+  "python": "3.14.7",
+  "generated_at": "2026-09-27T08:10:33+00:00",
+  "schema": {
+    "name": "tpa-contract",
+    "version": "0.1.0",
+    "file": "/Users/divh/Downloads/fieldforge/schemas/tpa-contract-v0.1.yaml"
+  },
+  "recipe": {
+    "name": "tpa_s1_dirty",
+    "file": "recipes/tpa_s1_dirty.yaml",
+    "seed": 20260927,
+    "period": {
+      "start": "2025-09-01",
+      "days": 365
+    },
+    "counts": {}
+  },
+  "seed": 20260927,
+  "output_format": "csv",
+  "synthetic_data_declaration": "本数据集由 fieldforge 生成的合成数据：仅可用于算法研发、测试、演示与教学；禁止用于储量申报、生产决策等任何真实业务场景。",
+  "entities": [
+    {
+      "entity": "well_info",
+      "file": "well_info.csv",
+      "rows": 120
+    },
+    {
+      "entity": "wellbore",
+      "file": "wellbore.csv",
+      "rows": 120
+    },
+    {
+      "entity": "sensor_channel",
+      "file": "sensor_channel.csv",
+      "rows": 360
+    },
+    {
+      "entity": "equip_status",
+      "file": "equip_status.csv",
+      "rows": 86
+    },
+    {
+      "entity": "oil_production_daily",
+      "file": "oil_production_daily.csv",
+      "rows": 31774
+    },
+    {
+      "entity": "water_injection_daily",
+      "file": "water_injection_daily.csv",
+      "rows": 12410
+    },
+    {
+      "entity": "well_overhaul",
+      "file": "well_overhaul.csv",
+      "rows": 19
+    },
+    {
+      "entity": "well_measures",
+      "file": "well_measures.csv",
+      "rows": 59
+    },
+    {
+      "entity": "fluid_test",
+      "file": "fluid_test.csv",
+      "rows": 987
+    },
+    {
+      "entity": "monthly_settlement",
+      "file": "monthly_settlement.csv",
+      "rows": 36
+    },
+    {
+      "entity": "sensor_reading",
+      "file": "sensor_reading.csv",
+      "rows": 131400
+    }
+  ],
+  "units": {
+    "well_info": {},
+    "wellbore": {
+      "measured_depth": "m"
+    },
+    "sensor_channel": {
+      "sample_interval_min": "min"
+    },
+    "equip_status": {
+      "load": "%",
+      "current": "A"
+    },
+    "oil_production_daily": {
+      "oil_output": "t",
+      "liquid_output": "m3",
+      "water_cut": "%",
+      "plan_output": "t",
+      "open_days": "h",
+      "oil_pressure": "MPa"
+    },
+    "water_injection_daily": {
+      "inj_volume": "m3",
+      "pump_pressure": "MPa"
+    },
+    "well_overhaul": {
+      "affected_output": "t"
+    },
+    "well_measures": {
+      "incr_oil_annual": "t"
+    },
+    "fluid_test": {
+      "water_cut_lab": "%",
+      "density": "t/m3",
+      "api_gravity": "°API"
+    },
+    "monthly_settlement": {
+      "net_weight": "t"
+    },
+    "sensor_reading": {}
+  },
+  "conformance": {
+    "status": "pass",
+    "checked_cells": 884117
+  },
+  "injection": {
+    "enabled": true,
+    "version": "2.0.0",
+    "seed": 20263928,
+    "dirty_mode": true,
+    "params": {
+      "dirty_mode": true,
+      "seed": 3001,
+      "shift_duplicate": {
+        "count": 40
+      },
+      "plan_dual_value": {
+        "factor": 1.1
+      },
+      "unit_misentry": {
+        "count": 12
+      },
+      "well_id_legacy": {
+        "count": 25
+      },
+      "stale_constant": {
+        "wells": 3,
+        "window": 30
+      },
+      "late_batch": {
+        "entity": "well_overhaul",
+        "ratio": 0.25
+      },
+      "status_lag": {
+        "count": 3
+      },
+      "legacy_stop_code": {
+        "ratio": 0.15,
+        "unknown_count": 1
+      },
+      "measure_missing": {
+        "ratio": 0.3
+      },
+      "lab_conflict": {
+        "count": 15
+      }
+    },
+    "counts": {
+      "lab_conflict": {
+        "conflict_rows": 15
+      },
+      "late_batch": {
+        "late_batches": 6
+      },
+      "legacy_stop_code": {
+        "legacy_rows": 4,
+        "unknown_rows": 1
+      },
+      "measure_missing": {
+        "missing_rows": 15
+      },
+      "plan_dual_value": {
+        "dual_rows": 344
+      },
+      "shift_duplicate": {
+        "duplicated_rows": 40
+      },
+      "stale_constant": {
+        "frozen_windows": 3,
+        "window_days": 30
+      },
+      "status_lag": {
+        "lagged_wells": 3
+      },
+      "unit_misentry": {
+        "misentered_rows": 12
+      },
+      "well_id_legacy": {
+        "legacy_rows": 25
+      }
+    }
+  },
+  "freshness": {
+    "tier": "offline",
+    "watermark": "T-1",
+    "as_of": "2026-08-31"
+  }
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 import csv
 import json
 import platform
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from . import __version__
@@ -81,5 +81,10 @@ def write_manifest(
         "conformance": {"status": "pass", "checked_cells": conformance_cells},
         "injection": injection_info or {"enabled": False},
     }
+    if recipe.freshness:
+        manifest["freshness"] = {
+            **recipe.freshness,
+            "as_of": (recipe.start + timedelta(days=recipe.days - 1)).isoformat(),
+        }
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest

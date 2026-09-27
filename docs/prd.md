@@ -84,7 +84,7 @@
 - M1 = F1 + F2 + F8 + F9 + F10 的最小集；M2 = F3 + F4；M3 = F7；M4 = F6（对齐 charter §6）。
 - F5 起步可推迟到 M2 之后（先用物理骨架 + 注入器撑住 tracer bullet）。
 - 全部排期未定，不写日期。
-- **进展（2026-09-27）**：Q1–Q3 已拍板（charter §8）；M0–M3 全部收口（tracer bullet / 物理打底四票 / 评估闸门 11 指标）；**P0 数据合同对齐完成**（schemas/tpa-contract-v0.1.yaml 对齐 teach-petro-agent 生产域 8 表字典 + 120 井主数据 profile，11 表 175,842 行，31,390 行日产量对齐平台大结果锚点；对接调研见 docs/integration-requirements.md）。下一步 P1：脏特征注入器家族 + 20 条平台质量规则机判 + freshness/批次元数据。环境无 pyarrow，输出只做 CSV，Parquet 作为可插拔后端（装 pyarrow 即启用）。
+- **进展（2026-09-27）**：M0–M3 全部收口；**P0 数据合同对齐**（tpa-contract-v0.1，11 表 175,842 行）与 **P1 脏特征与规则族**（注入器 v2.0.0 十类、平台规则 r1–r12 机判、freshness 元数据）相继收口——对接资格齐备：一条命令产出平台 8 表字典的干净基线与脏特征交付物，干净基线 12 规则零误报、脏特征全数被闸门逮住（双样例随仓 docs/reports/）。下一步 P2：注采受效关系 / Parquet / 亚日粒度 / M4 文档层；真实锚点接入并行（charter Q5）。
 
 ## 4. 汇总开放问题
 

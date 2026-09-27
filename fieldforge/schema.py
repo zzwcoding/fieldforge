@@ -57,6 +57,7 @@ class Recipe:
     days: int
     counts: dict
     injection: dict
+    freshness: dict
     fmt: str
     path: str
 
@@ -146,6 +147,7 @@ def load_recipe(path: str | Path) -> Recipe:
         days,
         raw.get("counts") or {},
         raw.get("injection") or {},
+        raw.get("freshness") or {},
         fmt,
         str(path),
     )
