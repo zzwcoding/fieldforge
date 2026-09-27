@@ -84,7 +84,7 @@
 - M1 = F1 + F2 + F8 + F9 + F10 的最小集；M2 = F3 + F4；M3 = F7；M4 = F6（对齐 charter §6）。
 - F5 起步可推迟到 M2 之后（先用物理骨架 + 注入器撑住 tracer bullet）。
 - 全部排期未定，不写日期。
-- **进展（2026-09-27）**：Q1–Q3 已拍板（charter §8）；M1 完成并提交（tracer bullet 验收全过）；M2 拆票 T0–T3，其中 **T0 算力实测完成**（flow 2026.04 容器化：SPE1 0.45s/次、Norne 164s/次，扫参粗精两档已定）、**T1 FlowAdapter 完成**（容器扫参→production_daily 同构骨架，spe1-orat N=3 验收 3/3）、**T2 注入器 v1 已完成**（挂 M1 规则骨架）；T3 传感器读数待开工。环境无 pyarrow，输出只做 CSV，Parquet 作为可插拔后端（装 pyarrow 即启用）。
+- **进展（2026-09-27）**：Q1–Q3 已拍板（charter §8）；M1 完成（tracer bullet 验收全过）；**M2 四票全部收口**——T0 算力实测（flow 2026.04 容器化：SPE1 0.45s/次、Norne 164s/次，粗精两档已定）、T1 FlowAdapter（容器扫参→production_daily 同构骨架，spe1-orat N=3 验收 3/3）、T2 注入器 v1、T3 传感器日度读数（schema 0.2.0 五表，停机静稳 + 读数注入）。下一步 M3 评估闸门（质量/隐私/物理一致性三族）。环境无 pyarrow，输出只做 CSV，Parquet 作为可插拔后端（装 pyarrow 即启用）。
 
 ## 4. 汇总开放问题
 

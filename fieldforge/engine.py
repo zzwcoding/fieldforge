@@ -114,6 +114,8 @@ class Engine:
             return self._model_sensor_set(ent)
         if ent.model == "arps_production":
             return self._model_arps(ent)
+        if ent.model == "daily_sensor_readings":
+            return self._model_sensor_readings(ent)
         raise NotImplementedError(f"未知模型：{ent.model}")
 
     def _model_sensor_set(self, ent: EntitySpec) -> list[dict]:
@@ -167,3 +169,46 @@ class Engine:
     def _clip_field(self, v: float, ent: EntitySpec, field: str) -> float:
         rng_decl = ent.fields[field].raw.get("range")
         return _clip(v, rng_decl) if rng_decl else v
+
+    def _model_sensor_readings(self, ent: EntitySpec) -> list[dict]:
+        """M2-T3：日度读数 = 生产骨架驱动（流量联动）+ 停机静稳 + 微噪声。
+
+        每井每通道一次性抽取工况参数（满产位量程分位、停机静稳分位），
+        读数值按通道量程截断；停机日取静稳常值（无噪声，便于机判静稳）。
+        """
+        ledgers: dict[str, list[dict]] = {}
+        for r in self.tables["production_daily"]:
+            ledgers.setdefault(r["well_id"], []).append(r)
+        rows = []
+        for w in self.tables["well"]:
+            wid = w["well_id"]
+            ledger = ledgers.get(wid, [])
+            oil_max = max((r["oil_rate"] for r in ledger), default=0.0) or 1.0
+            for ch in self.tables["sensor_channel"]:
+                if ch["well_id"] != wid:
+                    continue
+                span = ch["range_max"] - ch["range_min"]
+                if ch["channel_code"] == "WHT":
+                    flow_frac = self.rng.uniform(0.50, 0.70)   # 满产温度位
+                    static_frac = self.rng.uniform(0.18, 0.25)  # 环境温度档
+                elif ch["channel_code"] == "CGP":
+                    flow_frac = self.rng.uniform(0.60, 0.80)   # 套压略高于油压
+                    static_frac = self.rng.uniform(0.60, 0.70)
+                else:  # WHP 油压
+                    flow_frac = self.rng.uniform(0.55, 0.75)
+                    static_frac = self.rng.uniform(0.60, 0.70)  # 关井后井口压力回升
+                sigma = span * 0.01
+                for r in ledger:
+                    if r.get("producing_hours", 24.0) == 0.0:
+                        value = ch["range_min"] + static_frac * span  # 静稳常值
+                    else:
+                        value = ch["range_min"] + flow_frac * (r["oil_rate"] / oil_max) * span
+                        value = min(max(value + self.rng.gauss(0.0, sigma),
+                                        ch["range_min"]), ch["range_max"])
+                    rows.append({
+                        "well_id": wid,
+                        "channel_id": ch["channel_id"],
+                        "reading_date": r["prod_date"],
+                        "value": round(value, 3),
+                    })
+        return rows

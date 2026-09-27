@@ -1,0 +1,26 @@
+# M2-T3 演示配方：一口井 × 365 天 + 传感器日度读数 + 注入（坏点 / 缺测挂到读数上）
+# 运行：python3 -m fieldforge generate --recipe recipes/one_well_365d_sensors.yaml --out out-sensors
+# 注意：gap 的 count/length 在 sensor_reading 上以"行"计（1 个生产日 = 3 通道行）。
+recipe: one_well_365d_sensors
+description: 一口井 × 365 天五表（含 sensor_reading），读数注入坏点/缺测
+schema: schemas/core-v0.yaml
+seed: 20260925
+period:
+  start: 2025-01-01
+  days: 365
+counts:
+  well: 1
+outputs:
+  format: csv
+injection:
+  seed: 1002
+  spike:
+    entity: sensor_reading
+    field: value
+    prob_per_day: 0.02
+    factor: [1.2, 1.6]
+    skip_zero_field: null   # 读数表无 producing_hours 列，不打停机跳过
+  gap:
+    entity: sensor_reading
+    count: 2
+    length_days: [1, 3]

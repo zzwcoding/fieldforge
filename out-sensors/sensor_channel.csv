@@ -1,0 +1,4 @@
+well_id,channel_id,channel_code,channel_name,unit,range_min,range_max,sample_interval_min
+BLZ-3-99,BLZ-3-99-WHP,WHP,井口油压,MPa,0.0,35.0,5
+BLZ-3-99,BLZ-3-99-CGP,CGP,井口套压,MPa,0.0,30.0,5
+BLZ-3-99,BLZ-3-99-WHT,WHT,井口温度,°C,0.0,120.0,15

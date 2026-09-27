@@ -1,0 +1,110 @@
+{
+  "tool": "fieldforge",
+  "version": "0.1.0",
+  "python": "3.14.7",
+  "generated_at": "2026-09-27T03:35:29+00:00",
+  "schema": {
+    "name": "fieldforge-core",
+    "version": "0.2.0",
+    "file": "/Users/divh/Downloads/fieldforge/schemas/core-v0.yaml"
+  },
+  "recipe": {
+    "name": "one_well_365d_sensors",
+    "file": "recipes/one_well_365d_sensors.yaml",
+    "seed": 20260925,
+    "period": {
+      "start": "2025-01-01",
+      "days": 365
+    },
+    "counts": {
+      "well": 1
+    }
+  },
+  "seed": 20260925,
+  "output_format": "csv",
+  "synthetic_data_declaration": "本数据集由 fieldforge 生成的合成数据：仅可用于算法研发、测试、演示与教学；禁止用于储量申报、生产决策等任何真实业务场景。",
+  "entities": [
+    {
+      "entity": "well",
+      "file": "well.csv",
+      "rows": 1
+    },
+    {
+      "entity": "wellbore",
+      "file": "wellbore.csv",
+      "rows": 1
+    },
+    {
+      "entity": "sensor_channel",
+      "file": "sensor_channel.csv",
+      "rows": 3
+    },
+    {
+      "entity": "production_daily",
+      "file": "production_daily.csv",
+      "rows": 365
+    },
+    {
+      "entity": "sensor_reading",
+      "file": "sensor_reading.csv",
+      "rows": 1091
+    }
+  ],
+  "units": {
+    "well": {
+      "longitude": "°",
+      "latitude": "°"
+    },
+    "wellbore": {
+      "measured_depth": "m"
+    },
+    "sensor_channel": {
+      "sample_interval_min": "min"
+    },
+    "production_daily": {
+      "producing_hours": "h",
+      "oil_rate": "t/d",
+      "water_rate": "m3/d",
+      "gas_rate": "10^4 m3/d"
+    },
+    "sensor_reading": {}
+  },
+  "conformance": {
+    "status": "pass",
+    "checked_cells": 6589
+  },
+  "injection": {
+    "enabled": true,
+    "version": "1.0.0",
+    "seed": 20261927,
+    "params": {
+      "seed": 1002,
+      "spike": {
+        "entity": "sensor_reading",
+        "field": "value",
+        "prob_per_day": 0.02,
+        "factor": [
+          1.2,
+          1.6
+        ],
+        "skip_zero_field": null
+      },
+      "gap": {
+        "entity": "sensor_reading",
+        "count": 2,
+        "length_days": [
+          1,
+          3
+        ]
+      }
+    },
+    "counts": {
+      "spike": {
+        "points": 17
+      },
+      "gap": {
+        "removed_rows": 4
+      }
+    }
+  }
+}

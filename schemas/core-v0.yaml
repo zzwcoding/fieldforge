@@ -7,8 +7,8 @@
 # - 字典种子（油田名/区块码/传感器目录）在 fieldforge/seeds/dicts.json，全部虚构。
 
 schema: fieldforge-core
-version: 0.1.0
-description: 油气田合成数据核心 schema（M1：井 / 井筒 / 传感器通道 / 日生产台账）
+version: 0.2.0
+description: 油气田合成数据核心 schema（M1：井 / 井筒 / 传感器通道 / 日生产台账；M2-T3 增：传感器日度读数）
 
 entities:
 
@@ -150,3 +150,23 @@ entities:
         unit: 10^4 m3/d
         range: [0, 50]
         description: 日产气量
+
+  sensor_reading:
+    description: 传感器日度读数（M2-T3；每井 × 3 通道 × 每生产日；值域按各通道量程在模型内截断，故此处不声明静态 range）
+    primary_key: [channel_id, reading_date]
+    model: daily_sensor_readings
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well, field: well_id}
+        description: 所属井
+      channel_id:
+        type: fk
+        fk: {entity: sensor_channel, field: channel_id}
+        description: 传感器通道
+      reading_date:
+        type: date
+        description: 读数日期（与 production_daily.prod_date 同源）
+      value:
+        type: float
+        description: 读数值（单位见对应通道；停机日 = 静稳值）
