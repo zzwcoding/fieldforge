@@ -48,19 +48,9 @@ services:
     volumes:
       - ff-data:/data:ro
     restart: unless-stopped
-
-  # S3：MinIO 对象存储（湖底座 S1 形状；内网 9000，控制台 9001 不对外）
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fieldforge}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme-on-first-boot}
-    volumes:
-      - minio-data:/data
-    restart: unless-stopped
+  # S3 注记：MinIO 容器暂缓（各镜像源对本网络不可拉）——S1 数据面读 CSV 零依赖 MinIO，
+  # Iceberg/PyIceberg 真链路（S2+）启用时再以可用镜像源补挂。
 
 volumes:
   ff-data:
   pgdata:
-  minio-data:
