@@ -127,6 +127,7 @@ class Engine:
             "tpa_monthly_settlement": self._model_tpa_monthly_settlement,
             "tpa_injection_connection": self._model_tpa_injection_connection,
             "subdaily_sensor_readings": self._model_subdaily_sensor_readings,
+            "well_log_curves": self._model_well_log_curves,
         }
         if ent.model not in dispatch:
             raise NotImplementedError(f"未知模型：{ent.model}")
@@ -431,6 +432,60 @@ class Engine:
                         rows.append({"well_id": wid, "channel_id": ch["channel_id"],
                                      "ts": day0 + timedelta(minutes=k * step),
                                      "value": round(value, 3)})
+        return rows
+
+    def _model_well_log_curves(self, ent: EntitySpec) -> list[dict]:
+        """M5-T1（收窄版）：测井曲线合成——FORCE 2020 记忆码 + 12 类岩性标签。
+
+        产状 = 岩性分段（按厚度随机分区）+ 图版典型值 + 噪声；无真实数据（Owner 决策），
+        全部取自 seeds 图版表（典型测井响应值，教学/合成用途）。
+        交付建议 Parquet（120 井 × 2401 采样点 ≈ 28.8 万行）。
+        """
+        p = ent.model_params
+        tpa = self.seeds["tpa"]
+        chart = tpa["lithology_chart"]
+        codes = list(chart)
+        weights = [tpa["lithology_weights"][c] for c in codes]
+        d0, d1 = float(p["depth_start_m"]), float(p["depth_end_m"])
+        step = float(p["step_m"])
+        thick_lo, thick_hi = p["zone_thickness_m"]
+        rows = []
+        for w in self._tpa_wells():
+            wid = w["well_id"]
+            depth = d0
+            zone = None
+            zone_left = 0.0
+            while depth <= d1 + 1e-9:
+                if zone_left <= 0.0:
+                    code = self.rng.choices(codes, weights=weights, k=1)[0]
+                    zone = chart[code]
+                    zone_left = self.rng.uniform(*p["zone_thickness_m"])
+                def _c(col: str, v: float) -> float:
+                    rng_decl = ent.fields[col].raw.get("range")
+                    return min(max(v, rng_decl[0]), rng_decl[1]) if rng_decl else v
+
+                props = {
+                    "gr": _c("gr", zone["gr"] * math.exp(self.rng.gauss(0.0, 0.20))),
+                    "rhob": _c("rhob", zone["rhob"] + self.rng.gauss(0.0, 0.05)),
+                    "nphi": _c("nphi", zone["nphi"] + self.rng.gauss(0.0, 0.04)),
+                    "rdep": _c("rdep", zone["rdep"] * math.exp(self.rng.gauss(0.0, 0.40))),
+                    "dtc": _c("dtc", zone["dtc"] + self.rng.gauss(0.0, 5.0)),
+                    "cali": _c("cali", zone["cali"] + self.rng.gauss(0.0, 0.3)),
+                    "pef": _c("pef", zone["pef"] + self.rng.gauss(0.0, 0.4)),
+                }
+                rows.append({
+                    "well_id": wid, "depth_md": round(depth, 1),
+                    "gr": round(max(0.0, props["gr"]), 2),
+                    "rhob": round(props["rhob"], 3),
+                    "nphi": round(props["nphi"], 4),
+                    "rdep": round(max(0.1, props["rdep"]), 3),
+                    "dtc": round(props["dtc"], 2),
+                    "cali": round(props["cali"], 2),
+                    "pef": round(max(0.1, props["pef"]), 2),
+                    "lithology": code,
+                })
+                depth += step
+                zone_left -= step
         return rows
 
     def _model_tpa_monthly_settlement(self, ent: EntitySpec) -> list[dict]:

@@ -19,5 +19,25 @@
   "overhaul_types": ["检泵", "清防砂", "换封隔器", "其他作业"],
   "measure_types": ["压裂", "酸化", "补孔", "调剖"],
   "equip_types": ["电泵", "螺杆泵"],
-  "stop_reason_codes": ["RUNNING", "BELT", "MOTOR", "PUMP", "POWER"]
+  "stop_reason_codes": ["RUNNING", "BELT", "MOTOR", "PUMP", "POWER"],
+  "legacy_code_map": { "BELT": "R3", "MOTOR": "R4", "PUMP": "R5", "POWER": "R6" },
+  "lithology_chart": {
+    "65030": { "name": "Shale", "gr": 110, "rhob": 2.55, "nphi": 0.35, "rdep": 5, "dtc": 110, "cali": 10.0, "pef": 3.0 },
+    "30000": { "name": "Sandstone", "gr": 40, "rhob": 2.30, "nphi": 0.25, "rdep": 20, "dtc": 90, "cali": 8.5, "pef": 2.0 },
+    "65001": { "name": "Porous Sandstone", "gr": 35, "rhob": 2.20, "nphi": 0.30, "rdep": 50, "dtc": 105, "cali": 8.5, "pef": 1.8 },
+    "65000": { "name": "Sandstone/Shale interlaminated", "gr": 80, "rhob": 2.45, "nphi": 0.30, "rdep": 10, "dtc": 100, "cali": 9.0, "pef": 2.5 },
+    "66000": { "name": "Mudstone", "gr": 95, "rhob": 2.50, "nphi": 0.32, "rdep": 6, "dtc": 115, "cali": 9.5, "pef": 2.8 },
+    "70032": { "name": "Limestone", "gr": 25, "rhob": 2.65, "nphi": 0.05, "rdep": 300, "dtc": 78, "cali": 8.0, "pef": 5.0 },
+    "70000": { "name": "Dolomite", "gr": 30, "rhob": 2.80, "nphi": 0.08, "rdep": 200, "dtc": 72, "cali": 8.0, "pef": 3.0 },
+    "74000": { "name": "Chalk", "gr": 20, "rhob": 2.35, "nphi": 0.25, "rdep": 100, "dtc": 88, "cali": 8.2, "pef": 5.2 },
+    "80000": { "name": "Marl", "gr": 70, "rhob": 2.50, "nphi": 0.22, "rdep": 30, "dtc": 90, "cali": 8.7, "pef": 3.5 },
+    "86000": { "name": "Anhydrite", "gr": 15, "rhob": 2.95, "nphi": 0.01, "rdep": 5000, "dtc": 55, "cali": 7.5, "pef": 5.5 },
+    "88000": { "name": "Halite", "gr": 8, "rhob": 2.05, "nphi": 0.02, "rdep": 10000, "dtc": 67, "cali": 14.0, "pef": 4.7 },
+    "99000": { "name": "Tuff", "gr": 130, "rhob": 2.35, "nphi": 0.35, "rdep": 60, "dtc": 85, "cali": 8.6, "pef": 2.2 }
+  },
+  "lithology_weights": {
+    "65030": 0.30, "30000": 0.20, "65000": 0.12, "66000": 0.08, "65001": 0.08,
+    "70032": 0.07, "80000": 0.05, "70000": 0.04, "74000": 0.03, "86000": 0.01,
+    "88000": 0.01, "99000": 0.01
+  }
 }

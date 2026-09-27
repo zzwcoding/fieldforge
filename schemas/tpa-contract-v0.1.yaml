@@ -399,6 +399,65 @@ entities:
         type: float
         description: 读数值（通道量程内截断；停机时段整段静稳）
 
+  well_log_curve:
+    description: 测井曲线（M5-T1 收窄版：对齐 tpa identify_lithology(well_id, depth_range) 的数据前提；FORCE 2020 记忆码 + 12 类岩性标签；岩石物理图版值合成，无真实数据。交付建议 Parquet）
+    primary_key: [well_id, depth_md]
+    model: well_log_curves
+    model_params:
+      depth_start_m: 1400
+      depth_end_m: 2600
+      step_m: 0.5
+      zone_thickness_m: [5, 50]
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 井
+      depth_md:
+        type: float
+        unit: m
+        range: [0, 6000]
+        description: 测量深度
+      gr:
+        type: float
+        unit: API
+        range: [0, 300]
+        description: 自然伽马
+      rhob:
+        type: float
+        unit: g/cm3
+        range: [1.0, 3.2]
+        description: 体积密度
+      nphi:
+        type: float
+        unit: v/v
+        range: [-0.05, 0.7]
+        description: 中子孔隙度
+      rdep:
+        type: float
+        unit: ohm.m
+        range: [0.1, 100000]
+        description: 深电阻率
+      dtc:
+        type: float
+        unit: us/ft
+        range: [40, 150]
+        description: 纵波时差
+      cali:
+        type: float
+        unit: in
+        range: [6, 26]
+        description: 井径
+      pef:
+        type: float
+        unit: b/e
+        range: [0.5, 9]
+        description: 光电吸收截面指数
+      lithology:
+        type: enum
+        values: ["30000", "65030", "65001", "65000", "66000", "70032", "70000", "74000", "80000", "86000", "88000", "99000"]
+        description: FORCE 2020 岩性编码（12 类；编码为字符串——CSV 交付态即字符串）
+
   sensor_reading:
     description: 传感器日度读数（120 井 × 3 通道 × 365 日；秒级/15 分钟档属 P2）
     primary_key: [channel_id, reading_date]
