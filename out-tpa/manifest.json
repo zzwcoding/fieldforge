@@ -2,7 +2,7 @@
   "tool": "fieldforge",
   "version": "0.1.0",
   "python": "3.14.7",
-  "generated_at": "2026-09-27T08:41:17+00:00",
+  "generated_at": "2026-09-27T16:09:11+00:00",
   "schema": {
     "name": "tpa-contract",
     "version": "0.1.0",
@@ -78,6 +78,16 @@
       "rows": 65
     },
     {
+      "entity": "sensor_reading_subdaily",
+      "file": "sensor_reading_subdaily.csv",
+      "rows": 210240
+    },
+    {
+      "entity": "well_log_curve",
+      "file": "well_log_curve.csv",
+      "rows": 288120
+    },
+    {
       "entity": "sensor_reading",
       "file": "sensor_reading.csv",
       "rows": 131400
@@ -122,11 +132,22 @@
       "net_weight": "t"
     },
     "injection_connection": {},
+    "sensor_reading_subdaily": {},
+    "well_log_curve": {
+      "depth_md": "m",
+      "gr": "API",
+      "rhob": "g/cm3",
+      "nphi": "v/v",
+      "rdep": "ohm.m",
+      "dtc": "us/ft",
+      "cali": "in",
+      "pef": "b/e"
+    },
     "sensor_reading": {}
   },
   "conformance": {
     "status": "pass",
-    "checked_cells": 880921
+    "checked_cells": 4603081
   },
   "injection": {
     "enabled": false
@@ -135,5 +156,16 @@
     "tier": "offline",
     "watermark": "T-1",
     "as_of": "2026-08-31"
+  },
+  "gate": {
+    "overall": "pass",
+    "summary": {
+      "pass": 19,
+      "warn": 0,
+      "fail": 0,
+      "skipped": 6,
+      "overall": "pass"
+    },
+    "enforce": true
   }
 }

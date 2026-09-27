@@ -1,0 +1,279 @@
+{
+  "tool": "fieldforge-gate",
+  "version": 1,
+  "generated_at": "2026-09-27T16:09:13+00:00",
+  "data_dir": "out-tpa",
+  "reference": null,
+  "synthetic_data_declaration": "本数据集由 fieldforge 生成的合成数据：仅可用于算法研发、测试、演示与教学；禁止用于储量申报、生产决策等任何真实业务场景。",
+  "metrics": [
+    {
+      "id": "q1",
+      "family": "质量",
+      "name": "行数与 manifest 一致",
+      "status": "pass",
+      "value": {
+        "well_info": 120,
+        "wellbore": 120,
+        "sensor_channel": 360,
+        "equip_status": 86,
+        "oil_production_daily": 31390,
+        "water_injection_daily": 12410,
+        "well_overhaul": 19,
+        "well_measures": 59,
+        "fluid_test": 987,
+        "monthly_settlement": 36,
+        "injection_connection": 65,
+        "sensor_reading_subdaily": 210240,
+        "well_log_curve": 288120,
+        "sensor_reading": 131400
+      },
+      "detail": ""
+    },
+    {
+      "id": "q2",
+      "family": "质量",
+      "name": "数值列非退化",
+      "status": "pass",
+      "value": "检查 1 列",
+      "detail": ""
+    },
+    {
+      "id": "q3",
+      "family": "质量",
+      "name": "参照分布对比（KS/均值偏差）",
+      "status": "skipped",
+      "value": null,
+      "detail": "未提供 --reference；接入真实锚点后同路径即为真质量评估"
+    },
+    {
+      "id": "p1",
+      "family": "隐私",
+      "name": "主键重复率",
+      "status": "pass",
+      "value": {
+        "well_info": 0,
+        "wellbore": 0,
+        "sensor_channel": 0,
+        "equip_status": 0,
+        "oil_production_daily": 0,
+        "water_injection_daily": 0,
+        "well_overhaul": 0,
+        "well_measures": 0,
+        "fluid_test": 0,
+        "monthly_settlement": 0,
+        "injection_connection": 0,
+        "sensor_reading_subdaily": 0,
+        "well_log_curve": 0,
+        "sensor_reading": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "p2",
+      "family": "隐私",
+      "name": "数值组合重复率",
+      "status": "skipped",
+      "value": null,
+      "detail": "无可检数据"
+    },
+    {
+      "id": "p3",
+      "family": "隐私",
+      "name": "anonymeter 三类攻击",
+      "status": "skipped",
+      "value": null,
+      "detail": "Singling Out / Linkability / Inference 需真实参照数据（--real）；全合成场景不可判"
+    },
+    {
+      "id": "f1",
+      "family": "物理",
+      "name": "物质平衡（含水率界）",
+      "status": "pass",
+      "value": "检查 0 行",
+      "detail": ""
+    },
+    {
+      "id": "f2",
+      "family": "物理",
+      "name": "停机一致性（hours=0 ⇒ 产量 0）",
+      "status": "pass",
+      "value": "停机行 0",
+      "detail": ""
+    },
+    {
+      "id": "f3",
+      "family": "物理",
+      "name": "传感器量程合法性",
+      "status": "pass",
+      "value": "检查 131400 读数",
+      "detail": ""
+    },
+    {
+      "id": "f4",
+      "family": "物理",
+      "name": "停机读数静稳",
+      "status": "skipped",
+      "value": null,
+      "detail": "无传感器表"
+    },
+    {
+      "id": "f5",
+      "family": "物理",
+      "name": "日间递减率合理性",
+      "status": "skipped",
+      "value": null,
+      "detail": "有效生产行不足"
+    },
+    {
+      "id": "r1",
+      "family": "规则",
+      "name": "规则1 (well_id,prod_date) 唯一性",
+      "status": "pass",
+      "value": {
+        "duplicates": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "r2",
+      "family": "规则",
+      "name": "规则2 oil_output 非空率 ≥99.5%",
+      "status": "pass",
+      "value": {
+        "empty": 0,
+        "ratio": 0.0
+      },
+      "detail": ""
+    },
+    {
+      "id": "r3",
+      "family": "规则",
+      "name": "规则3 单位一致性（折算密度带）",
+      "status": "pass",
+      "value": {
+        "violations": 0,
+        "checked": 30776
+      },
+      "detail": ""
+    },
+    {
+      "id": "r4",
+      "family": "规则",
+      "name": "规则4 计量 vs 化验含水 ≤5pp",
+      "status": "pass",
+      "value": {
+        "violations": 0,
+        "compared": 987
+      },
+      "detail": ""
+    },
+    {
+      "id": "r5",
+      "family": "规则",
+      "name": "规则5 water_cut/open_days 值域",
+      "status": "pass",
+      "value": {
+        "violations": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "r6",
+      "family": "规则",
+      "name": "规则6 批次水位 ≤T-1",
+      "status": "pass",
+      "value": {
+        "late_batches": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "r7",
+      "family": "规则",
+      "name": "规则7 井号归一化",
+      "status": "pass",
+      "value": {
+        "legacy_rows": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "r8",
+      "family": "规则",
+      "name": "规则8 停机原因码映射全命中",
+      "status": "pass",
+      "value": {
+        "unknown_codes": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "r9",
+      "family": "规则",
+      "name": "规则9 状态机合法迁移（滞后检测）",
+      "status": "pass",
+      "value": {
+        "lagged_wells": []
+      },
+      "detail": ""
+    },
+    {
+      "id": "r10",
+      "family": "规则",
+      "name": "规则10 恒值 30 日告警",
+      "status": "pass",
+      "value": {
+        "longest_constant_run": 2
+      },
+      "detail": "判据=告警级（warn），恒值窗口属仪表卡死信号"
+    },
+    {
+      "id": "r11",
+      "family": "规则",
+      "name": "规则11 传感器零值 2 小时告警",
+      "status": "pass",
+      "value": {
+        "max_zero_run": 0,
+        "threshold_readings": 8
+      },
+      "detail": "亚日数据启用（15 分钟档 ×8 读数 = 2 小时）；tpa 设定书自标教学演绎"
+    },
+    {
+      "id": "r12",
+      "family": "规则",
+      "name": "规则12 区块月物质平衡偏差 ≤3%",
+      "status": "pass",
+      "value": {
+        "max_dev": 0.02,
+        "checked": 36
+      },
+      "detail": ""
+    },
+    {
+      "id": "r_eff",
+      "family": "规则",
+      "name": "受效关系劈分系数 Σ=1（本体域）",
+      "status": "pass",
+      "value": {
+        "violations": {},
+        "injectors": 34
+      },
+      "detail": ""
+    },
+    {
+      "id": "r13_20",
+      "family": "规则",
+      "name": "规则13–20（泛维度）",
+      "status": "skipped",
+      "value": null,
+      "detail": "枚举合法/极值/波动率/引用完整/钩稽由符合性检查与 q2/f5/r12 覆盖，专条规则待提取件二核对后启用"
+    }
+  ],
+  "summary": {
+    "pass": 19,
+    "warn": 0,
+    "fail": 0,
+    "skipped": 6,
+    "overall": "pass"
+  }
+}
