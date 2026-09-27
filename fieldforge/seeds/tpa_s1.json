@@ -1,0 +1,23 @@
+{
+  "_notice": "本字典取形自 teach-petro-agent 设定书 v3（其自身标注『组织、人名、事故簿为教学虚构；数据形状/指标公式/治理做法取自真实论文』）。仅供合成数据生成，不代表任何真实油田；禁止用于储量申报等真实决策。",
+  "industry_code_map": {
+    "X_WELL_MASTER": "well_info",
+    "X_OP_PROD_DAILY": "oil_production_daily",
+    "X_INJ_DAILY": "water_injection_daily"
+  },
+  "blocks": [
+    { "name": "渤南", "letter": "N", "density": 0.86 },
+    { "name": "渤中", "letter": "Z", "density": 0.89 },
+    { "name": "渤西", "letter": "X", "density": 0.91 }
+  ],
+  "platforms": ["CEP-A", "CEP-B", "CEP-C", "CEP-D", "CEP-E"],
+  "sensor_catalog": [
+    { "code": "WHP", "name": "井口压力", "unit": "MPa", "range_min": 0.0, "range_max": 40.0, "sample_interval_min": 60 },
+    { "code": "WHT", "name": "管线温度", "unit": "°C", "range_min": -20.0, "range_max": 120.0, "sample_interval_min": 60 },
+    { "code": "WCT", "name": "含水率", "unit": "%", "range_min": 0.0, "range_max": 99.9, "sample_interval_min": 300 }
+  ],
+  "overhaul_types": ["检泵", "清防砂", "换封隔器", "其他作业"],
+  "measure_types": ["压裂", "酸化", "补孔", "调剖"],
+  "equip_types": ["电泵", "螺杆泵"],
+  "stop_reason_codes": ["RUNNING", "BELT", "MOTOR", "PUMP", "POWER"]
+}

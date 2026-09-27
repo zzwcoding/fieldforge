@@ -1,0 +1,13 @@
+# P0 演示配方：tpa 生产域数据合同 · S1 档干净基线
+# 120 井（86 EW + 34 IW）× 365 天（2025-09-01 起，对齐大结果锚点 31,390 行）
+# 运行：python3 -m fieldforge generate --recipe recipes/tpa_s1_demo.yaml --out out-tpa
+# 脏特征注入（A/B 班重复、T-3 补录、单位误录…）属 P1 注入器家族，本配方为干净基线。
+recipe: tpa_s1_demo
+description: tpa 数据合同 8 表 + 井筒/传感器辅助实体 · 120 井 × 365 天
+schema: schemas/tpa-contract-v0.1.yaml
+seed: 20260927
+period:
+  start: 2025-09-01
+  days: 365
+outputs:
+  format: csv

@@ -1,0 +1,369 @@
+# tpa-contract v0.1 —— teach-petro-agent 生产域 8 表字典对齐 schema（P0 数据合同）
+#
+# 需求真源：teach-petro-agent/docs/business-setting.md 附录 A（:139-156）+ 20 条质量规则（:68-82）
+# + 主数据配比（:12，120 井 = 86 EW 采油 + 34 IW 注水，5 平台，3 区块）。
+# 纪律：tpa 设定书自标"组织/事故簿为教学虚构"——本合同取形不借实；生成物为合成数据。
+# 脏特征（A/B 班重复、T-3 补录、单位误录、新旧编码并存等）属 P1 注入器家族，本版产干净基线。
+# 行业编码对照（X_WELL_MASTER→well_info 等）见 fieldforge/seeds/tpa_s1.json。
+
+schema: tpa-contract
+version: 0.1.0
+description: Petro-Agent 平台生产域数据合同（8 表 + 井筒/传感器辅助实体；干净基线）
+
+entities:
+
+  well_info:
+    description: 井档案（主数据 profile 驱动：86 EW + 34 IW）
+    primary_key: well_id
+    model: master_wells
+    model_params:
+      count_ew: 86
+      count_iw: 34
+      status_values: [生产中, 停产, 检修, 待弃置]
+      status_weights: [0.92, 0.04, 0.03, 0.01]
+    fields:
+      well_id:
+        type: string
+        description: 井标识，{区块字母}-{序号}（N-02 式）
+      well_name:
+        type: string
+        description: 井名
+      well_type:
+        type: enum
+        values: [EW, IW]
+        description: 井型（EW 采油 / IW 注水）
+      first_prod_date:
+        type: date
+        description: 首次投产日期（2019–2020 档）
+      platform:
+        type: string
+        description: 所属平台（CEP-A…CEP-E）
+      block_name:
+        type: enum
+        values: [渤南, 渤中, 渤西]
+        description: 所属区块（行级权限归属字段）
+      field_name:
+        type: string
+        description: 所属油田
+      current_status:
+        type: enum
+        values: [生产中, 停产, 检修, 待弃置]
+        description: 当前状态
+      remarks:
+        type: string
+        description: 备注（P1 起承载注入防御素材）
+
+  wellbore:
+    description: 井筒（每井 1 主井筒）
+    primary_key: wellbore_id
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 所属井
+      wellbore_id:
+        type: string
+        generator: wellbore_id
+        description: 井筒标识
+      measured_depth:
+        type: float
+        unit: m
+        range: [1500, 4800]
+        generator: float_range
+        description: 测量井深
+      completion_type:
+        type: enum
+        values: [射孔完井, 筛管完井, 裸眼完井]
+        weights: [0.7, 0.2, 0.1]
+        description: 完井方式
+      completion_date:
+        type: date
+        generator: date_after_parent
+        params: {parent_field: first_prod_date, min_days: 30, max_days: 200}
+        description: 完井日期（不晚于投产）
+
+  sensor_channel:
+    description: 传感器通道（平台原型量程：压力 0–40 MPa / 温度 −20–120 ℃ / 含水 0–99.9%）
+    primary_key: channel_id
+    model: standard_sensor_set
+    model_params: {catalog: tpa}
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 所属井
+      channel_id:
+        type: string
+        description: 通道标识 {well_id}-{code}
+      channel_code:
+        type: string
+        description: 通道编码
+      channel_name:
+        type: string
+        description: 通道名称
+      unit:
+        type: string
+        description: 计量单位
+      range_min:
+        type: float
+        description: 量程下限
+      range_max:
+        type: float
+        description: 量程上限
+      sample_interval_min:
+        type: integer
+        unit: min
+        description: 采样间隔（60 = 15 分钟档基础）
+
+  equip_status:
+    description: 设备状态（机采泵 + 停机原因新编码；旧编码并存属 P1 脏特征）
+    primary_key: equip_id
+    model: tpa_equip_status
+    model_params:
+      equip_type_weights: [0.6, 0.4]
+      load_range: [55, 95]
+      current_range: [20, 80]
+      stop_reason_weights: [0.85, 0.05, 0.04, 0.04, 0.02]
+    fields:
+      equip_id:
+        type: string
+        description: 设备标识（EQ-{well_id}）
+      equip_type:
+        type: enum
+        values: [电泵, 螺杆泵]
+        description: 设备类型
+      load:
+        type: float
+        unit: "%"
+        range: [0, 100]
+        description: 负载
+      current:
+        type: float
+        unit: A
+        range: [0, 200]
+        description: 电流
+      stop_reason_code:
+        type: enum
+        values: [RUNNING, BELT, MOTOR, PUMP, POWER]
+        description: 停机原因码（新编码）
+
+  oil_production_daily:
+    description: 日产计量（★核心事实源；EW 井 × 日；86×365 = 31,390 行对齐大结果锚点）
+    primary_key: [well_id, prod_date]
+    model: tpa_daily_production
+    model_params:
+      initial_oil_rate_t_per_d: [15, 50]
+      arps_b: [0.4, 0.9]
+      arps_di_per_day: [0.0002, 0.0008]
+      water_cut_start: [0.05, 0.20]
+      water_cut_end: [0.50, 0.75]
+      plan_factor: [0.95, 1.15]
+      initial_pressure_mpa: [3, 9]
+      noise_sigma: 0.03
+      downtime_prob_per_day: 0.02
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 井
+      prod_date:
+        type: date
+        description: 生产日期
+      oil_output:
+        type: float
+        unit: t
+        range: [0, 200]
+        description: 日产油量（吨）
+      liquid_output:
+        type: float
+        unit: m3
+        range: [0, 3000]
+        description: 日产液量（方；油/(1−含水)×密度 反推，物质量纲自洽）
+      water_cut:
+        type: float
+        unit: "%"
+        range: [0, 100]
+        description: 含水率
+      plan_output:
+        type: float
+        unit: t
+        range: [0, 200]
+        description: 配产计划（井级恒定，供产量完成率口径）
+      open_days:
+        type: float
+        unit: h
+        range: [0, 24]
+        description: 开井时长（字典名 open_days，取值域 0–24，规则 5）
+      oil_pressure:
+        type: float
+        unit: MPa
+        range: [0, 40]
+        description: 油压（平台原型量程上限 40）
+      report_shift:
+        type: enum
+        values: [A, B, C]
+        description: 报班
+
+  water_injection_daily:
+    description: 注水台账（IW 井 × 日；34×365 = 12,410 行）
+    primary_key: [well_id, prod_date]
+    model: tpa_water_injection
+    model_params:
+      target_inj_volume_m3_per_d: [60, 180]
+      pump_pressure_mpa: [8, 18]
+      downtime_prob_per_day: 0.02
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 注水井
+      prod_date:
+        type: date
+        description: 注水日期
+      inj_volume:
+        type: float
+        unit: m3
+        range: [0, 500]
+        description: 日注水量
+      pump_pressure:
+        type: float
+        unit: MPa
+        range: [0, 25]
+        description: 泵压
+      layer_split:
+        type: string
+        description: 分层配注（P1:60,P2:40 式，层内合计 100）
+
+  well_overhaul:
+    description: 检修台账（跨月案例；batch_id 走 T-1 干净档）
+    primary_key: [well_id, overhaul_start]
+    model: tpa_overhaul
+    model_params:
+      event_prob_per_well: 0.15
+      duration_days: [2, 15]
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 井
+      overhaul_start:
+        type: date
+        description: 检修开始
+      overhaul_end:
+        type: date
+        description: 检修结束（可跨月）
+      overhaul_type:
+        type: enum
+        values: [检泵, 清防砂, 换封隔器, 其他作业]
+        description: 检修类型
+      affected_output:
+        type: float
+        unit: t
+        range: [0, 10000]
+        description: 影响产量
+      batch_id:
+        type: string
+        description: 补录批次（{yyyymmdd}-T1；T-3 脏样本属 P1）
+
+  well_measures:
+    description: 措施台账（有效期完整；30% 缺失属 P1 脏特征）
+    primary_key: [well_id, job_date]
+    model: tpa_measures
+    model_params:
+      event_prob_per_well: 0.4
+      effective_days: [90, 365]
+      incr_oil_annual_t: [200, 1500]
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 井
+      measure_type:
+        type: enum
+        values: [压裂, 酸化, 补孔, 调剖]
+        description: 措施类型
+      job_date:
+        type: date
+        description: 施工日期
+      effective_from:
+        type: date
+        description: 有效期起
+      effective_to:
+        type: date
+        description: 有效期止
+      incr_oil_annual:
+        type: float
+        unit: t
+        range: [0, 5000]
+        description: 年增油
+
+  fluid_test:
+    description: 化验（与计量含水一致性 ±1.5pp 内；打架样本属 P1）
+    primary_key: [well_id, sample_date]
+    model: tpa_fluid_test
+    model_params:
+      interval_days: [25, 40]
+      density_range: [0.82, 0.98]
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 井
+      sample_date:
+        type: date
+        description: 取样日期
+      water_cut_lab:
+        type: float
+        unit: "%"
+        range: [0, 100]
+        description: 化验含水
+      density:
+        type: float
+        unit: t/m3
+        range: [0.82, 0.98]
+        description: 密度（区块密度 ± 噪声，规则 3 可机判）
+      api_gravity:
+        type: float
+        unit: °API
+        range: [10, 50]
+        description: API 度（141.5/SG−131.5）
+
+  monthly_settlement:
+    description: 月度结算（区块 × 结算月；净重 = 油量合计 × 0.98，输差 2% 在规则 12 的 3% 界内）
+    primary_key: [block_name, settle_date]
+    model: tpa_monthly_settlement
+    model_params:
+      loss_ratio: 0.02
+    fields:
+      block_name:
+        type: enum
+        values: [渤南, 渤中, 渤西]
+        description: 区块
+      settle_date:
+        type: date
+        description: 结算月（自然月首日）
+      net_weight:
+        type: float
+        unit: t
+        range: [0, 200000]
+        description: 净重量（扣自用油与输差）
+
+  sensor_reading:
+    description: 传感器日度读数（120 井 × 3 通道 × 365 日；秒级/15 分钟档属 P2）
+    primary_key: [channel_id, reading_date]
+    model: daily_sensor_readings
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 所属井
+      channel_id:
+        type: fk
+        fk: {entity: sensor_channel, field: channel_id}
+        description: 传感器通道
+      reading_date:
+        type: date
+        description: 读数日期
+      value:
+        type: float
+        description: 读数值（通道量程内截断；停机日静稳常值）

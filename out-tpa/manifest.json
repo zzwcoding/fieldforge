@@ -1,0 +1,128 @@
+{
+  "tool": "fieldforge",
+  "version": "0.1.0",
+  "python": "3.14.7",
+  "generated_at": "2026-09-27T07:48:25+00:00",
+  "schema": {
+    "name": "tpa-contract",
+    "version": "0.1.0",
+    "file": "/Users/divh/Downloads/fieldforge/schemas/tpa-contract-v0.1.yaml"
+  },
+  "recipe": {
+    "name": "tpa_s1_demo",
+    "file": "recipes/tpa_s1_demo.yaml",
+    "seed": 20260927,
+    "period": {
+      "start": "2025-09-01",
+      "days": 365
+    },
+    "counts": {}
+  },
+  "seed": 20260927,
+  "output_format": "csv",
+  "synthetic_data_declaration": "本数据集由 fieldforge 生成的合成数据：仅可用于算法研发、测试、演示与教学；禁止用于储量申报、生产决策等任何真实业务场景。",
+  "entities": [
+    {
+      "entity": "well_info",
+      "file": "well_info.csv",
+      "rows": 120
+    },
+    {
+      "entity": "wellbore",
+      "file": "wellbore.csv",
+      "rows": 120
+    },
+    {
+      "entity": "sensor_channel",
+      "file": "sensor_channel.csv",
+      "rows": 360
+    },
+    {
+      "entity": "equip_status",
+      "file": "equip_status.csv",
+      "rows": 86
+    },
+    {
+      "entity": "oil_production_daily",
+      "file": "oil_production_daily.csv",
+      "rows": 31390
+    },
+    {
+      "entity": "water_injection_daily",
+      "file": "water_injection_daily.csv",
+      "rows": 12410
+    },
+    {
+      "entity": "well_overhaul",
+      "file": "well_overhaul.csv",
+      "rows": 19
+    },
+    {
+      "entity": "well_measures",
+      "file": "well_measures.csv",
+      "rows": 59
+    },
+    {
+      "entity": "fluid_test",
+      "file": "fluid_test.csv",
+      "rows": 987
+    },
+    {
+      "entity": "monthly_settlement",
+      "file": "monthly_settlement.csv",
+      "rows": 36
+    },
+    {
+      "entity": "sensor_reading",
+      "file": "sensor_reading.csv",
+      "rows": 131400
+    }
+  ],
+  "units": {
+    "well_info": {},
+    "wellbore": {
+      "measured_depth": "m"
+    },
+    "sensor_channel": {
+      "sample_interval_min": "min"
+    },
+    "equip_status": {
+      "load": "%",
+      "current": "A"
+    },
+    "oil_production_daily": {
+      "oil_output": "t",
+      "liquid_output": "m3",
+      "water_cut": "%",
+      "plan_output": "t",
+      "open_days": "h",
+      "oil_pressure": "MPa"
+    },
+    "water_injection_daily": {
+      "inj_volume": "m3",
+      "pump_pressure": "MPa"
+    },
+    "well_overhaul": {
+      "affected_output": "t"
+    },
+    "well_measures": {
+      "incr_oil_annual": "t"
+    },
+    "fluid_test": {
+      "water_cut_lab": "%",
+      "density": "t/m3",
+      "api_gravity": "°API"
+    },
+    "monthly_settlement": {
+      "net_weight": "t"
+    },
+    "sensor_reading": {}
+  },
+  "conformance": {
+    "status": "pass",
+    "checked_cells": 880661
+  },
+  "injection": {
+    "enabled": false
+  }
+}

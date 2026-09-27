@@ -27,8 +27,11 @@ _SENSOR_FIELD_MAP = {
 
 
 def load_seeds() -> dict:
-    raw = resources.files("fieldforge.seeds").joinpath("dicts.json").read_text(encoding="utf-8")
-    return json.loads(raw)
+    out = json.loads(
+        resources.files("fieldforge.seeds").joinpath("dicts.json").read_text(encoding="utf-8"))
+    out["tpa"] = json.loads(
+        resources.files("fieldforge.seeds").joinpath("tpa_s1.json").read_text(encoding="utf-8"))
+    return out
 
 
 def _clip(v: float, rng_decl: list) -> float:
@@ -110,18 +113,29 @@ class Engine:
     # ---- 模型实体：整段序列/整组行一次成型 ---------------------------------
 
     def _gen_model(self, name: str, ent: EntitySpec) -> list[dict]:
-        if ent.model == "standard_sensor_set":
-            return self._model_sensor_set(ent)
-        if ent.model == "arps_production":
-            return self._model_arps(ent)
-        if ent.model == "daily_sensor_readings":
-            return self._model_sensor_readings(ent)
-        raise NotImplementedError(f"未知模型：{ent.model}")
+        dispatch = {
+            "standard_sensor_set": self._model_sensor_set,
+            "arps_production": self._model_arps,
+            "daily_sensor_readings": self._model_sensor_readings,
+            "master_wells": self._model_master_wells,
+            "tpa_daily_production": self._model_tpa_daily_production,
+            "tpa_water_injection": self._model_tpa_water_injection,
+            "tpa_overhaul": self._model_tpa_overhaul,
+            "tpa_measures": self._model_tpa_measures,
+            "tpa_fluid_test": self._model_tpa_fluid_test,
+            "tpa_equip_status": self._model_tpa_equip_status,
+            "tpa_monthly_settlement": self._model_tpa_monthly_settlement,
+        }
+        if ent.model not in dispatch:
+            raise NotImplementedError(f"未知模型：{ent.model}")
+        return dispatch[ent.model](ent)
 
     def _model_sensor_set(self, ent: EntitySpec) -> list[dict]:
+        catalog_key = (ent.model_params or {}).get("catalog", "sensor_catalog")
+        catalog = self.seeds["tpa"]["sensor_catalog"] if catalog_key == "tpa" else self.seeds[catalog_key]
         rows = []
-        for w in self.tables["well"]:
-            for entry in self.seeds["sensor_catalog"]:
+        for w in self._well_rows():
+            for entry in catalog:
                 row: dict = {"well_id": w["well_id"]}
                 for fname in ent.fields:
                     if fname == "well_id":
@@ -170,20 +184,219 @@ class Engine:
         rng_decl = ent.fields[field].raw.get("range")
         return _clip(v, rng_decl) if rng_decl else v
 
+    # ---- 合同 schema（tpa 生产域 8 表字典，P0） ----------------------------
+
+    def _tpa_wells(self, wtype: str | None = None) -> list[dict]:
+        wells = self.tables.get("well_info", [])
+        return [w for w in wells if wtype is None or w["well_type"] == wtype]
+
+    def _well_rows(self) -> list[dict]:
+        """井主表：合同 schema 为 well_info，core 为 well。"""
+        return self.tables.get("well_info") or self.tables.get("well", [])
+
+    def _model_master_wells(self, ent: EntitySpec) -> list[dict]:
+        """主数据 profile：120 井 = 86 EW + 34 IW，3 区块 × 5 平台，N-02 式井号。"""
+        p = ent.model_params
+        tpa = self.seeds["tpa"]
+        blocks, platforms = tpa["blocks"], tpa["platforms"]
+        wells, seq = [], {b["letter"]: 0 for b in blocks}
+        for wtype in ["EW"] * int(p["count_ew"]) + ["IW"] * int(p["count_iw"]):
+            blk = self.rng.choice(blocks)
+            seq[blk["letter"]] += 1
+            wells.append({
+                "well_id": f"{blk['letter']}-{seq[blk['letter']]:02d}",
+                "well_name": f"{blk['name']}{seq[blk['letter']]:02d}",
+                "well_type": wtype,
+                "first_prod_date": date(2019, 1, 1) + timedelta(days=self.rng.randint(0, 730)),
+                "platform": self.rng.choice(platforms),
+                "block_name": blk["name"],
+                "field_name": f"{blk['name']}油田",
+                "current_status": self.rng.choices(p["status_values"], weights=p["status_weights"], k=1)[0],
+                "remarks": "",
+            })
+        return wells
+
+    def _model_tpa_daily_production(self, ent: EntitySpec) -> list[dict]:
+        """oil_production_daily：EW 井 × 日，产量骨架与 core 同族（Arps + 含水爬升 + 停机）。"""
+        p = ent.model_params
+        days = self.recipe.days
+        start = self.recipe.start
+        denom = max(days - 1, 1)
+        sigma = float(p["noise_sigma"])
+        p_down = float(p["downtime_prob_per_day"])
+        blocks = {b["name"]: b["density"] for b in self.seeds["tpa"]["blocks"]}
+        rows = []
+        for w in self._tpa_wells("EW"):
+            density = blocks[w["block_name"]]
+            qi = self.rng.uniform(*p["initial_oil_rate_t_per_d"])
+            b = self.rng.uniform(*p["arps_b"])
+            di = self.rng.uniform(*p["arps_di_per_day"])
+            wc0 = self.rng.uniform(*p["water_cut_start"])
+            wc1 = self.rng.uniform(*p["water_cut_end"])
+            plan = round(qi * self.rng.uniform(*p["plan_factor"]), 2)
+            p0 = self.rng.uniform(*p["initial_pressure_mpa"])
+            for t in range(days):
+                row = {"well_id": w["well_id"], "prod_date": start + timedelta(days=t)}
+                shift = self.rng.choices(["A", "B", "C"], weights=[0.4, 0.35, 0.25], k=1)[0]
+                if self.rng.random() < p_down:
+                    row.update(oil_output=0.0, liquid_output=0.0, water_cut=0.0,
+                               plan_output=plan, open_days=0.0, oil_pressure=0.0,
+                               report_shift=shift)
+                else:
+                    q = qi / (1.0 + b * di * t) ** (1.0 / b)
+                    oil = max(0.0, q * math.exp(self.rng.gauss(0.0, sigma)))
+                    wc = min(0.95, wc0 + (wc1 - wc0) * (t / denom))
+                    liquid = oil / ((1.0 - wc) * density)
+                    press = min(max(p0 * (q / qi) ** 0.5 + self.rng.gauss(0.0, 0.15), 0.0), 40.0)
+                    row.update(oil_output=round(oil, 2), liquid_output=round(liquid, 2),
+                               water_cut=round(wc * 100.0, 2), plan_output=plan,
+                               open_days=24.0, oil_pressure=round(press, 2),
+                               report_shift=shift)
+                rows.append(row)
+        return rows
+
+    def _model_tpa_water_injection(self, ent: EntitySpec) -> list[dict]:
+        p = ent.model_params
+        days = self.recipe.days
+        start = self.recipe.start
+        rows = []
+        for w in self._tpa_wells("IW"):
+            target = self.rng.uniform(*p["target_inj_volume_m3_per_d"])
+            pp0 = self.rng.uniform(*p["pump_pressure_mpa"])
+            picks = self.rng.sample(["P1", "P2", "P3"], self.rng.randint(2, 3))
+            raw = [self.rng.uniform(20.0, 80.0) for _ in picks]
+            total = sum(raw)
+            split = ":".join(f"{k}:{round(v / total * 100)}" for k, v in zip(picks, raw))
+            for t in range(days):
+                row = {"well_id": w["well_id"], "prod_date": start + timedelta(days=t),
+                       "layer_split": split}
+                if self.rng.random() < p["downtime_prob_per_day"]:
+                    row.update(inj_volume=0.0, pump_pressure=0.0)
+                else:
+                    row.update(inj_volume=round(max(0.0, target * math.exp(self.rng.gauss(0.0, 0.04))), 2),
+                               pump_pressure=round(min(max(pp0 + self.rng.gauss(0.0, 0.3), 0.0), 25.0), 2))
+                rows.append(row)
+        return rows
+
+    def _model_tpa_overhaul(self, ent: EntitySpec) -> list[dict]:
+        p = ent.model_params
+        tpa = self.seeds["tpa"]
+        days = self.recipe.days
+        start = self.recipe.start
+        oil_sum: dict[str, float] = {}
+        for r in self.tables["oil_production_daily"]:
+            oil_sum[r["well_id"]] = oil_sum.get(r["well_id"], 0.0) + r["oil_output"]
+        mean_oil = {k: v / max(days, 1) for k, v in oil_sum.items()}
+        rows = []
+        for w in self.tables["well_info"]:
+            if self.rng.random() >= p["event_prob_per_well"]:
+                continue
+            dur = self.rng.randint(int(p["duration_days"][0]), int(p["duration_days"][1]))
+            s = start + timedelta(days=self.rng.randint(0, max(days - dur - 1, 0)))
+            affected = round(mean_oil.get(w["well_id"], 0.0) * dur * 0.8, 2) if w["well_type"] == "EW" else 0.0
+            rows.append({"well_id": w["well_id"], "overhaul_start": s,
+                         "overhaul_end": s + timedelta(days=dur - 1),
+                         "overhaul_type": self.rng.choice(tpa["overhaul_types"]),
+                         "affected_output": affected,
+                         "batch_id": f"{s:%Y%m%d}-T1"})
+        return rows
+
+    def _model_tpa_measures(self, ent: EntitySpec) -> list[dict]:
+        p = ent.model_params
+        tpa = self.seeds["tpa"]
+        days = self.recipe.days
+        start = self.recipe.start
+        rows = []
+        for w in self._tpa_wells("EW"):
+            if self.rng.random() >= p["event_prob_per_well"]:
+                continue
+            used: set[date] = set()
+            for _ in range(self.rng.randint(1, 2)):
+                job = start + timedelta(days=self.rng.randint(10, max(days - 100, 11)))
+                while job in used:  # 主键 (well_id, job_date) 防碰撞
+                    job = job + timedelta(days=self.rng.randint(30, 60))
+                used.add(job)
+                eff = self.rng.randint(int(p["effective_days"][0]), int(p["effective_days"][1]))
+                rows.append({"well_id": w["well_id"],
+                             "measure_type": self.rng.choice(tpa["measure_types"]),
+                             "job_date": job, "effective_from": job,
+                             "effective_to": job + timedelta(days=eff),
+                             "incr_oil_annual": round(self.rng.uniform(*p["incr_oil_annual_t"]), 2)})
+        return rows
+
+    def _model_tpa_fluid_test(self, ent: EntitySpec) -> list[dict]:
+        p = ent.model_params
+        blocks = {b["name"]: b["density"] for b in self.seeds["tpa"]["blocks"]}
+        wc_by_well_date = {(r["well_id"], r["prod_date"]): r["water_cut"]
+                           for r in self.tables["oil_production_daily"]}
+        days = self.recipe.days
+        start = self.recipe.start
+        rows = []
+        for w in self._tpa_wells("EW"):
+            d = self.rng.randint(0, 20)
+            while d < days:
+                prod_date = start + timedelta(days=d)
+                wc = wc_by_well_date.get((w["well_id"], prod_date), 0.0)
+                density = min(max(blocks[w["block_name"]] + self.rng.gauss(0.0, 0.005),
+                                  p["density_range"][0]), p["density_range"][1])
+                rows.append({"well_id": w["well_id"], "sample_date": prod_date,
+                             "water_cut_lab": round(min(max(wc + self.rng.gauss(0.0, 1.5), 0.0), 100.0), 2),
+                             "density": round(density, 3),
+                             "api_gravity": round(141.5 / density - 131.5, 1)})
+                d += self.rng.randint(int(p["interval_days"][0]), int(p["interval_days"][1]))
+        return rows
+
+    def _model_tpa_equip_status(self, ent: EntitySpec) -> list[dict]:
+        p = ent.model_params
+        tpa = self.seeds["tpa"]
+        rows = []
+        for w in self._tpa_wells("EW"):
+            rows.append({"equip_id": f"EQ-{w['well_id']}",
+                         "equip_type": self.rng.choices(tpa["equip_types"],
+                                                        weights=p["equip_type_weights"], k=1)[0],
+                         "load": round(self.rng.uniform(*p["load_range"]), 1),
+                         "current": round(self.rng.uniform(*p["current_range"]), 1),
+                         "stop_reason_code": self.rng.choices(tpa["stop_reason_codes"],
+                                                              weights=p["stop_reason_weights"], k=1)[0]})
+        return rows
+
+    def _model_tpa_monthly_settlement(self, ent: EntitySpec) -> list[dict]:
+        """区块 × 结算月净重量 = 该区块当月油量合计 × (1−损耗率)；损耗 ≤ 规则 12 的 3%。"""
+        p = ent.model_params
+        block_of = {w["well_id"]: w["block_name"] for w in self.tables["well_info"]}
+        sums: dict[tuple, float] = {}
+        for r in self.tables["oil_production_daily"]:
+            key = (block_of[r["well_id"]], r["prod_date"].replace(day=1))
+            sums[key] = sums.get(key, 0.0) + r["oil_output"]
+        loss = float(p["loss_ratio"])
+        rows = [{"block_name": block, "settle_date": month,
+                 "net_weight": round(total * (1.0 - loss), 2)}
+                for (block, month), total in sorted(sums.items())]
+        return rows
+
     def _model_sensor_readings(self, ent: EntitySpec) -> list[dict]:
         """M2-T3：日度读数 = 生产骨架驱动（流量联动）+ 停机静稳 + 微噪声。
 
-        每井每通道一次性抽取工况参数（满产位量程分位、停机静稳分位），
-        读数值按通道量程截断；停机日取静稳常值（无噪声，便于机判静稳）。
+        每井每通道一次性抽取工况参数，读数值按通道量程截断；
+        停机日取静稳常值（无噪声，便于机判静稳）。
+        兼容 core（production_daily/oil_rate/producing_hours）与合同 schema
+        （oil_production_daily/oil_output/open_days）两套生产表列名。
         """
+        prod_table = "oil_production_daily" if self.tables.get("oil_production_daily") else "production_daily"
+        prod_rows = self.tables[prod_table]
+        hours_col = "open_days" if (prod_rows and "open_days" in prod_rows[0]) else "producing_hours"
+        rate_col = "oil_output" if (prod_rows and "oil_output" in prod_rows[0]) else "oil_rate"
         ledgers: dict[str, list[dict]] = {}
-        for r in self.tables["production_daily"]:
-            ledgers.setdefault(r["well_id"], []).append(r)
+        for src in (prod_rows, self.tables.get("water_injection_daily", [])):
+            for r in src:  # 采油井挂产油台账，注水井挂注水台账
+                ledgers.setdefault(r["well_id"], []).append(r)
         rows = []
-        for w in self.tables["well"]:
+        for w in self._well_rows():
             wid = w["well_id"]
             ledger = ledgers.get(wid, [])
-            oil_max = max((r["oil_rate"] for r in ledger), default=0.0) or 1.0
+            drivers = [(r, next((r[c] for c in (rate_col, "inj_volume") if c in r), 0.0))
+                       for r in ledger]
+            oil_max = max((d for _, d in drivers), default=0.0) or 1.0
             for ch in self.tables["sensor_channel"]:
                 if ch["well_id"] != wid:
                     continue
@@ -194,15 +407,15 @@ class Engine:
                 elif ch["channel_code"] == "CGP":
                     flow_frac = self.rng.uniform(0.60, 0.80)   # 套压略高于油压
                     static_frac = self.rng.uniform(0.60, 0.70)
-                else:  # WHP 油压
+                else:  # WHP 油压/泵压
                     flow_frac = self.rng.uniform(0.55, 0.75)
                     static_frac = self.rng.uniform(0.60, 0.70)  # 关井后井口压力回升
                 sigma = span * 0.01
-                for r in ledger:
-                    if r.get("producing_hours", 24.0) == 0.0:
+                for r, driver in drivers:
+                    if r.get(hours_col, 24.0) == 0.0 or driver == 0.0:
                         value = ch["range_min"] + static_frac * span  # 静稳常值
                     else:
-                        value = ch["range_min"] + flow_frac * (r["oil_rate"] / oil_max) * span
+                        value = ch["range_min"] + flow_frac * (driver / oil_max) * span
                         value = min(max(value + self.rng.gauss(0.0, sigma),
                                         ch["range_min"]), ch["range_max"])
                     rows.append({
