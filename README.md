@@ -56,6 +56,18 @@ python3 -m unittest discover -s tests -t .   # 48 个测试
 
 输出带 `manifest.json`（seed / schema 版本 / 单位表 / 符合性结论 / 闸门结论 / 合成数据声明）。
 
+## 部署（单机 Docker Compose）
+
+```bash
+cd deploy && docker compose up -d --build   # fieldforge-api + postgres + redis + nginx(80)
+curl http://<服务器IP>/healthz
+```
+
+- API：`POST /api/generate` · `GET /api/runs` · `POST /api/evaluate/{run_id}` · `POST /api/narrate/{run_id}` · `GET /api/runs/{id}/download/{file}`（白名单文件名）
+- 生成任务互斥限流（并发第二个 429）；每个响应带 `X-Synthetic-Data` 头
+- 服务器首次初始化：[deploy/init-server.sh](deploy/init-server.sh)（Docker + 4G swap）
+- 路线：单机 compose → tpa 前后端加入 → 流量上来再迁容器服务
+
 ## 数据红线
 
 **所有产出均为合成数据**，仅可用于算法研发、测试、演示与教学；
