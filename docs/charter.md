@@ -76,12 +76,12 @@
 
 | # | 问题 | 现状/建议 |
 |---|---|---|
-| Q1 | 命名与仓库公开时机 | **已决策（2026-09-27，Owner）**：不考虑上 GitHub——项目保持本地；查重/公开流程作废 |
+| Q1 | 命名与仓库公开时机 | **已变更（2026-09-27，Owner 指示）**：以 `fieldforge` 名义公开为 GitHub Public 仓库（zzwcoding/fieldforge，账号内无重名）；此前"不上 GitHub"决策作废 |
 | Q2 | M1 第一优先数据域：生产时序 vs 钻井参数 | **已拍板（2026-09-25）**：生产时序先行（Volve/Norne 先验最全，调研报告 §4.3）；钻井参数 M2 后另票 |
 | Q3 | 物理引擎首选：OPM Flow（Eclipse 格式兼容、Norne 配套、C++/Python）vs MRST（MATLAB 栈） | **已拍板（2026-09-25）**：OPM Flow，独立进程集成；M2 开工前先实测算力成本（Q8） |
 | Q4 | 输出标准对齐深度：WITSML/PRODML 全对齐成本高 | 建议 v1 只做"字段命名参考 + 可扩展映射表"，全对齐另立项 |
 | Q5 | 真实数据 license 对生成物的传导 | **已决策（2026-09-27，Owner）**：不接真实数据（项目用途=给 teach-petro 供数，无真实数据需求）；`--real` 接口保留，license 备忘（docs/licenses-real-anchor.md）留档备查 |
-| Q6 | 第一个内部用户与验收场景 | 候选：teach-petro-agent 教学/面试演示（可为 Petro-Agent 平台叙事供数）；待 Owner 定 |
+| Q6 | 第一个内部用户与验收场景 | 候选：teach-petro-agent 教学/演示（可为 Petro-Agent 平台叙事供数）；待 Owner 定 |
 | Q7 | LLM 层模型选型（云端 vs 国产化/本地化约束） | **已决策（2026-09-27，Owner）**：暂不接 LLM——模板叙述化（narrate v0.1）+数值一致性机判已满足供数需求；`daily_report` 接口已留，tPa 需要多样化文档语料时再选型 |
 | Q8 | 扫参算力成本（油藏模拟单次运行分钟–小时级） | **实测完成（2026-09-27，票 [M2-T0](../tickets/M2-T0-env-feasibility.md)）**：本机容器原生 arm64 + flow 2026.04（OPM PPA）——SPE1 级 0.45 s/次，Norne 全油田 164 s/次。扫参规模拍板：**粗/精两档**——粗扫 SPE1 级千次 ≈ 8 min，精扫 Norne 级 N=50 串行 ≈ 2.2 h（可并行再压）。环境配方已固化进 T0 票（ubuntu:24.04 arm64 容器 + PPA + libopm-simulators-bin） |
 
@@ -109,4 +109,4 @@
 | 合同 schema 版本号收口（v0.1.0 → bump + 变更记录；期间已加 nullable/枚举拓宽/受效关系/测井曲线等） | 同上，与胶水层一并考虑 |
 | 金样本固化（固定 seed 的 Parquet 快照随仓，供 tpa 开发当稳定测试夹具） | Owner 态度"无所谓"——tpa 侧需要夹具时随手可做 |
 
-**已决策不做**：真实数据接入（Q5）、GitHub 公开（Q1）、LLM 接入（Q7）、地震数据（M5 范围外）。
+**已决策不做**：真实数据接入（Q5）、LLM 接入（Q7）、地震数据（M5 范围外）。GitHub 公开按 Owner 2026-09-27 指示执行（Q1 决策反转，见 §8）。
