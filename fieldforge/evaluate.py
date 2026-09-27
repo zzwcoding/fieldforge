@@ -416,6 +416,16 @@ def _platform_rules(data: dict) -> list[dict]:
                          "pass" if worst_dev <= 0.03 else "fail",
                          {"max_dev": round(worst_dev, 4), "checked": checked12}))
 
+    # 本体域约束：受效关系劈分系数 Σ=1 / 注水井（注采比与增油劈分的口径前提）
+    sums_eff: dict[str, float] = {}
+    for r in data.get("injection_connection", []):
+        k = r.get("injector_well_id")
+        sums_eff[k] = sums_eff.get(k, 0.0) + (_num(r, "split_coefficient") or 0.0)
+    bad_eff = {k: round(v, 6) for k, v in sums_eff.items() if abs(v - 1.0) > 1e-6}
+    rules.append(_metric("r_eff", "规则", "受效关系劈分系数 Σ=1（本体域）",
+                         "pass" if not bad_eff else "fail",
+                         {"violations": bad_eff, "injectors": len(sums_eff)}))
+
     # 规则 13–20（引用完整/跨表一致/枚举合法/正则格式/极值/波动率/钩稽/scrub）：
     # 维度由既有指标覆盖——枚举合法=符合性检查、极值/波动率=q2/f5、引用完整=fk、钩稽=r12。
     rules.append(_metric("r13_20", "规则", "规则13–20（泛维度）", "skipped", None,

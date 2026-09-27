@@ -125,6 +125,7 @@ class Engine:
             "tpa_fluid_test": self._model_tpa_fluid_test,
             "tpa_equip_status": self._model_tpa_equip_status,
             "tpa_monthly_settlement": self._model_tpa_monthly_settlement,
+            "tpa_injection_connection": self._model_tpa_injection_connection,
         }
         if ent.model not in dispatch:
             raise NotImplementedError(f"未知模型：{ent.model}")
@@ -358,6 +359,32 @@ class Engine:
                          "current": round(self.rng.uniform(*p["current_range"]), 1),
                          "stop_reason_code": self.rng.choices(tpa["stop_reason_codes"],
                                                               weights=p["stop_reason_weights"], k=1)[0]})
+        return rows
+
+    def _model_tpa_injection_connection(self, ent: EntitySpec) -> list[dict]:
+        """受效关系：每口注水井连 1–3 口同区块受效油井，劈分系数（整数百分比分摊）合计恰为 1。"""
+        p = ent.model_params
+        producers_by_block: dict[str, list[str]] = {}
+        for w in self._tpa_wells("EW"):
+            producers_by_block.setdefault(w["block_name"], []).append(w["well_id"])
+        rows = []
+        for w in self._tpa_wells("IW"):
+            pool = [wid for wid in producers_by_block.get(w["block_name"], []) if wid != w["well_id"]]
+            if not pool:
+                continue
+            n = min(self.rng.randint(int(p["min_producers"]), int(p["max_producers"])), len(pool))
+            picked = self.rng.sample(pool, n)
+            pct = [self.rng.randint(10, 80) for _ in range(n)]
+            total = sum(pct)
+            pcts = [round(v / total * 100) for v in pct]
+            pcts[-1] = max(0, 100 - sum(pcts[:-1]))
+            if sum(pcts) != 100:  # 取整损耗补到最大份，保证合计恰为 100
+                pcts[pcts.index(max(pcts))] += 100 - sum(pcts)
+            resp = self.recipe.start + timedelta(days=self.rng.randint(0, int(p["response_start_max_days"])))
+            for wid, share in zip(picked, pcts):
+                rows.append({"injector_well_id": w["well_id"], "producer_well_id": wid,
+                             "split_coefficient": round(share / 100.0, 2),
+                             "response_start_date": resp})
         return rows
 
     def _model_tpa_monthly_settlement(self, ent: EntitySpec) -> list[dict]:

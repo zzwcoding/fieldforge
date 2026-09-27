@@ -1,0 +1,8 @@
+{
+  "tool": "fieldforge-narrate",
+  "version": "0.1.0",
+  "mode": "template（LLM 叙述化待选型，charter Q7）",
+  "reports": 7,
+  "validation_failures": 0,
+  "synthetic_data_declaration": "本语料由 fieldforge 依合成数据模板叙述化生成：仅用于算法研发、测试、演示与教学；禁止用于储量申报、生产决策等任何真实业务场景。"
+}

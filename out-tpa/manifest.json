@@ -2,7 +2,7 @@
   "tool": "fieldforge",
   "version": "0.1.0",
   "python": "3.14.7",
-  "generated_at": "2026-09-27T07:48:25+00:00",
+  "generated_at": "2026-09-27T08:41:17+00:00",
   "schema": {
     "name": "tpa-contract",
     "version": "0.1.0",
@@ -73,6 +73,11 @@
       "rows": 36
     },
     {
+      "entity": "injection_connection",
+      "file": "injection_connection.csv",
+      "rows": 65
+    },
+    {
       "entity": "sensor_reading",
       "file": "sensor_reading.csv",
       "rows": 131400
@@ -116,13 +121,19 @@
     "monthly_settlement": {
       "net_weight": "t"
     },
+    "injection_connection": {},
     "sensor_reading": {}
   },
   "conformance": {
     "status": "pass",
-    "checked_cells": 880661
+    "checked_cells": 880921
   },
   "injection": {
     "enabled": false
+  },
+  "freshness": {
+    "tier": "offline",
+    "watermark": "T-1",
+    "as_of": "2026-08-31"
   }
 }

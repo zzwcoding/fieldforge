@@ -351,6 +351,31 @@ entities:
         range: [0, 200000]
         description: 净重量（扣自用油与输差）
 
+  injection_connection:
+    description: 受效关系（本体域硬要求：注水井→受效油井多对多，劈分系数 Σ=1/注水井 + 响应起始日；供递减增油劈分与注采比口径）
+    primary_key: [injector_well_id, producer_well_id]
+    model: tpa_injection_connection
+    model_params:
+      min_producers: 1
+      max_producers: 3
+      response_start_max_days: 30
+    fields:
+      injector_well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 注水井
+      producer_well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 受效油井（同区块）
+      split_coefficient:
+        type: float
+        range: [0, 1]
+        description: 劈分系数（同一注水井名下合计 = 1）
+      response_start_date:
+        type: date
+        description: 响应起始日
+
   sensor_reading:
     description: 传感器日度读数（120 井 × 3 通道 × 365 日；秒级/15 分钟档属 P2）
     primary_key: [channel_id, reading_date]

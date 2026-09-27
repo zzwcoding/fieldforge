@@ -27,11 +27,18 @@ def main(argv=None) -> int:
     v.add_argument("--real", default=None, help="真实参照数据目录（anonymeter 攻击评估，后续票启用）")
     v.add_argument("--out", default=None, help="报告 JSON 路径（默认 <data>/evaluation.json）")
     v.add_argument("--html", action="store_true", help="同时输出 HTML 报告（同目录 .html）")
+    n = sub.add_parser("narrate", help="班报模板叙述化（M4 v1，数值一致性机判回流）")
+    n.add_argument("--data", required=True, help="generate 输出目录（tpa-contract）")
+    n.add_argument("--well", required=True, help="井号（well_info.well_id）")
+    n.add_argument("--days", type=int, default=None, help="只取前 N 天（默认全期）")
+    n.add_argument("--out", default=None, help="语料目录（默认 <data>/narration/<well>）")
     args = parser.parse_args(argv)
     if args.command == "sweep":
         return _cmd_sweep(args)
     if args.command == "evaluate":
         return _cmd_evaluate(args)
+    if args.command == "narrate":
+        return _cmd_narrate(args)
     return _cmd_generate(args)
 
 
@@ -121,3 +128,21 @@ def _cmd_evaluate(args) -> int:
         if m["status"] in ("fail", "warn"):
             print(f"  [{m['status']}] {m['family']}/{m['name']}: {m['value']}")
     return 1 if s["overall"] == "fail" else 0
+
+
+def _cmd_narrate(args) -> int:
+    from . import evaluate as gate
+    from . import narrate
+
+    _, tables = gate._load_data(Path(args.data))
+    try:
+        corpus = narrate.build_corpus(tables, args.well, args.days)
+    except KeyError as e:
+        print(f"查无此井：{e}", file=sys.stderr)
+        return 2
+    out = Path(args.out) if args.out else Path(args.data) / "narration" / args.well
+    manifest = narrate.write_corpus(out, corpus)
+    print(f"班报语料 {manifest['reports']} 篇 → {out}/（叙述化模式：{manifest['mode']}）")
+    print(f"  数值一致性机判：失败 {manifest['validation_failures']} 篇"
+          f"（{'全部通过' if manifest['validation_failures'] == 0 else '不合格语料不得入评测集'}）")
+    return 1 if manifest["validation_failures"] else 0
