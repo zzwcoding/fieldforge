@@ -19,9 +19,10 @@ class M2T1Render(unittest.TestCase):
         for v in spec.params[0].values:
             text = render_deck(spec, {"orat": v})
             self.assertRegex(text, rf"'PROD'\s+'OPEN'\s+'ORAT'\s+{v}\b")
+            if v != 20000:  # 非 20000 档说明替换确实发生（原值已不在）
+                self.assertNotRegex(text, r"'PROD'\s+'OPEN'\s+'ORAT'\s+20000\b")
             texts.add(text)
         self.assertEqual(len(texts), len(spec.params[0].values))  # 三档互不相同
-        self.assertNotRegex(texts.pop(), "'PROD'\\s+'OPEN'\\s+'ORAT'\\s+20000\\b")  # 原值已不在
 
     def test_render_zero_match_raises(self):
         spec = load_sweep(SWEEP)
