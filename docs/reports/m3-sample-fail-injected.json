@@ -1,0 +1,141 @@
+{
+  "tool": "fieldforge-gate",
+  "version": 1,
+  "generated_at": "2026-09-27T05:35:32+00:00",
+  "data_dir": "out-sensors",
+  "reference": "out/production_daily.csv",
+  "synthetic_data_declaration": "本数据集由 fieldforge 生成的合成数据：仅可用于算法研发、测试、演示与教学；禁止用于储量申报、生产决策等任何真实业务场景。",
+  "metrics": [
+    {
+      "id": "q1",
+      "family": "质量",
+      "name": "行数与 manifest 一致",
+      "status": "pass",
+      "value": {
+        "well": 1,
+        "wellbore": 1,
+        "sensor_channel": 3,
+        "production_daily": 365,
+        "sensor_reading": 1091
+      },
+      "detail": ""
+    },
+    {
+      "id": "q2",
+      "family": "质量",
+      "name": "数值列非退化",
+      "status": "pass",
+      "value": "检查 4 列",
+      "detail": ""
+    },
+    {
+      "id": "q3",
+      "family": "质量",
+      "name": "参照分布对比（KS/均值偏差）",
+      "status": "pass",
+      "value": {
+        "oil_rate": {
+          "ks": 0.0,
+          "mean_dev": 0.0
+        },
+        "water_rate": {
+          "ks": 0.0,
+          "mean_dev": 0.0
+        },
+        "gas_rate": {
+          "ks": 0.0,
+          "mean_dev": 0.0
+        }
+      },
+      "detail": "最差列  KS=0.000（阈值 pass<0.30 / warn<0.50）"
+    },
+    {
+      "id": "p1",
+      "family": "隐私",
+      "name": "主键重复率",
+      "status": "pass",
+      "value": {
+        "well": 0,
+        "wellbore": 0,
+        "sensor_channel": 0,
+        "production_daily": 0,
+        "sensor_reading": 0
+      },
+      "detail": ""
+    },
+    {
+      "id": "p2",
+      "family": "隐私",
+      "name": "数值组合重复率",
+      "status": "pass",
+      "value": {
+        "duplicates": 2,
+        "ratio": 0.0055
+      },
+      "detail": "全合成场景的结构性隐私信号（>20% 视为指纹性过强）"
+    },
+    {
+      "id": "p3",
+      "family": "隐私",
+      "name": "anonymeter 三类攻击",
+      "status": "skipped",
+      "value": null,
+      "detail": "Singling Out / Linkability / Inference 需真实参照数据（--real）；全合成场景不可判"
+    },
+    {
+      "id": "f1",
+      "family": "物理",
+      "name": "物质平衡（含水率界）",
+      "status": "pass",
+      "value": "检查 362 行",
+      "detail": ""
+    },
+    {
+      "id": "f2",
+      "family": "物理",
+      "name": "停机一致性（hours=0 ⇒ 产量 0）",
+      "status": "pass",
+      "value": "停机行 3",
+      "detail": ""
+    },
+    {
+      "id": "f3",
+      "family": "物理",
+      "name": "传感器量程合法性",
+      "status": "fail",
+      "value": [
+        {
+          "2025-01-18": 35.445
+        }
+      ],
+      "detail": ""
+    },
+    {
+      "id": "f4",
+      "family": "物理",
+      "name": "停机读数静稳",
+      "status": "fail",
+      "value": {
+        "BLZ-3-99-WHP": 2
+      },
+      "detail": "同通道停机读数应唯一（静稳常值）；若数据经过坏点注入，属预期，用无注入输出评估"
+    },
+    {
+      "id": "f5",
+      "family": "物理",
+      "name": "日间递减率合理性",
+      "status": "pass",
+      "value": {
+        "max_day_jump_x": 1.136
+      },
+      "detail": "相邻生产日油量比值上限：pass<2× / warn<3×（注入尖刺按设计可达 2.2×）"
+    }
+  ],
+  "summary": {
+    "pass": 8,
+    "warn": 0,
+    "fail": 2,
+    "skipped": 1,
+    "overall": "fail"
+  }
+}

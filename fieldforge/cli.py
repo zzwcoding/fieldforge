@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -20,9 +21,17 @@ def main(argv=None) -> int:
     s = sub.add_parser("sweep", help="物理扫参（OPM Flow 容器，GPL 组件独立进程）")
     s.add_argument("--sweep", required=True, help="扫参配方 YAML 路径")
     s.add_argument("--out", default=None, help="输出目录（默认 out/sweep-<name>）")
+    v = sub.add_parser("evaluate", help="评估闸门（质量/隐私/物理一致性三族指标）")
+    v.add_argument("--data", required=True, help="generate 输出目录（含 manifest.json）")
+    v.add_argument("--reference", default=None, help="同构参照 CSV（另种子生成 / 物理骨架 / 真实锚点）")
+    v.add_argument("--real", default=None, help="真实参照数据目录（anonymeter 攻击评估，后续票启用）")
+    v.add_argument("--out", default=None, help="报告 JSON 路径（默认 <data>/evaluation.json）")
+    v.add_argument("--html", action="store_true", help="同时输出 HTML 报告（同目录 .html）")
     args = parser.parse_args(argv)
     if args.command == "sweep":
         return _cmd_sweep(args)
+    if args.command == "evaluate":
+        return _cmd_evaluate(args)
     return _cmd_generate(args)
 
 
@@ -92,3 +101,22 @@ def _cmd_sweep(args) -> int:
         mark = "✓" if s["rc"] == 0 else "✗"
         print(f"  {mark} {s['solution']} {s['params']} rc={s['rc']} {s['wall_s']}s rows={s.get('rows', '-')}")
     return 0 if ok == total else 1
+
+
+def _cmd_evaluate(args) -> int:
+    from . import evaluate as gate
+
+    report = gate.evaluate(Path(args.data),
+                           reference=Path(args.reference) if args.reference else None,
+                           real_dir=args.real)
+    out = Path(args.out) if args.out else Path(args.data) / "evaluation.json"
+    out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if args.html:
+        out.with_suffix(".html").write_text(gate.to_html(report), encoding="utf-8")
+    s = report["summary"]
+    print(f"评估闸门 → {out}（overall={s['overall']}）")
+    print(f"  pass {s['pass']} · warn {s['warn']} · fail {s['fail']} · skipped {s['skipped']}")
+    for m in report["metrics"]:
+        if m["status"] in ("fail", "warn"):
+            print(f"  [{m['status']}] {m['family']}/{m['name']}: {m['value']}")
+    return 1 if s["overall"] == "fail" else 0
