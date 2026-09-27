@@ -1,38 +1,29 @@
 # M2-T0 · OPM Flow 环境可行性探测与算力实测
 
-**状态**：路径 A 深度执行——被本机 Docker Desktop 故障阻断，**挂起等 Owner GUI 层处理** ｜ **上游**：charter Q3/Q8 ｜ 更新：2026-09-27
+**状态**：✅ done（2026-09-27，路径 A 打通并完成实测） ｜ **上游**：charter Q3/Q8
 
-## 已定事实（本轮逐项核实）
+## 实测结果（本机 macOS arm64 · Docker 容器原生 arm64 · flow 2026.04）
 
-### 官方安装渠道（结论性）
+| 算例 | 规模 | 结果 | 单次耗时 |
+|---|---|---|---|
+| SPE1CASE1（[OPM/opm-data/spe1](https://github.com/OPM/opm-data/tree/master/spe1)） | 教学级（437 行自包含 deck） | ×10 全部 rc=0 | **0.44–0.53 s** |
+| NORNE_ATW2013（opm-data/norne，30 MB 完整 INCLUDE 树） | 全油田（1323 Newton / 2320 Linear 迭代） | rc=0 | **164.4 s（≈2.7 min）** |
 
-| 渠道 | 结论 | 证据 |
-|---|---|---|
-| Docker 官方镜像 | **不存在**（此前记忆中的 `openporousmedia/flow` 为检索摘要误导，已证伪） | [opm-project.org 安装页](https://opm-project.org/?page_id=36) 全文无 docker；镜像源按 registry API 逐名探测 `openporousmedia/flow`、`opmproject/flow`、`opm/flow` 等全部 404（对照组 `library/alpine` 同流程 200，证明探测路径有效） |
-| macOS 二进制 | **不存在** | 安装页明示二进制仅覆盖 64 位 Ubuntu 与 RHEL 7；macOS 只支持源码编译；GitHub release（2026.04/2025.10/2025.04）assets 全空 |
-| Ubuntu PPA | **存在且为本机唯一官方直达渠道** | `ppa:opm/ppa`（Ubuntu 26.04/24.04）——但只能在 Linux 环境（容器/虚机/服务器）内使用 |
-| 算例 | 已核实 | [OPM/opm-data/spe1/](https://github.com/OPM/opm-data/tree/master/spe1)（SPE1CASE1.DATA 等）；Norne 随 opm-data `norne/` |
+## 环境配方（可复现）
 
-### 本机执行轨迹（A 路径）
+1. 宿主 `ubuntu:24.04`(arm64) 入库（官方无 OPM Docker 镜像；经 `scripts/docker-load-via-mirror.sh` curl 组装或镜像源直拉均可）。
+2. 容器内换 TUNA apt 源 → `add-apt-repository ppa:opm/ppa` → `apt install libopm-simulators-bin`（PPA 二进制包名不叫 flow；noble 有 **arm64 原生构建**，Apple Silicon 免转译）→ `/usr/bin/flow`（版本 2026.04）。
+3. 常驻容器 `flowbox`（sleep infinity）保留作 M2-T1 开发环境；deck 经 `docker cp` 注入。
+4. 官方渠道定论存档：OPM 无 Docker 镜像、无 macOS 二进制（安装页 + registry API 逐名探测证伪，对照 alpine 200）；daemon 直拉非黑洞——cache-miss 代理极慢后返回 not found。
 
-1. **镜像源**：`~/.docker/daemon.json` 已配 `registry-mirrors`（docker.1ms.run / m.daocloud.io / xuanyuan.me，均探活；原文件备份 `daemon.json.bak-20260925`，还原 `cp ~/.docker/daemon.json.bak-20260925 ~/.docker/daemon.json`）。实测 daocloud 对本镜像白名单外（403 DENIED），1ms.run 的 token/manifest/blob API 全通。
-2. **daemon 直拉"挂死"实为极慢**：`docker pull docker.1ms.run/openporousmedia/flow:latest` 发起后约 30–40 分钟无输出，最终返回 `failed to resolve reference ... not found`——daemon 到镜像源**是通的**（镜像源对 cache-miss 镜像代理上游极慢，推测），且"镜像不存在"获得 daemon 侧第二次独立确认；`crane` 同样慢/挂，宿主 curl（libcurl）秒通。结论修正：网络不是黑洞，"不存在镜像 + 慢代理"叠加了排障噪音。
-3. **绕行成功一半**：`scripts/docker-load-via-mirror.sh`（curl 逐 blob 下载 + sha256 校验 + OCI layout 组装 + `docker load`）已验证可行，`ubuntu:24.04`(arm64) 已入本地镜像库。
-4. **容器子系统挂死（阻断点）**：干净重启后 `docker run -d` 连容器都未创建、`docker create` 纯元数据操作也挂死——runc/containerd 层故障，CLI 层无解。**需 Owner 打开 Docker Desktop GUI 检查**（可能有等密码/更新的对话框；或在 Troubleshoot 里做 Reset，注意 Reset 会清掉现有镜像，含 agentjiaotu 系列）。
+## 排障存档（已收口）
 
-## 解除挂起后的既定动作（零决策，直接跑）
+- 镜像加速三源已配 `~/.docker/daemon.json`（备份 `daemon.json.bak-20260925`；daocloud 白名单外 403，1ms.run 可用）。
+- Docker Desktop 曾出现容器子系统挂死（`docker create` 卡死），Owner 于 GUI 层修复后恢复。
+- Go 栈（daemon/crane）慢而 libcurl 快的现象随环境恢复消失，未再复现，根因未深究。
 
-1. `docker run --rm ubuntu:24.04 bash -c '...'` 网络通即继续；不通则 Docker Desktop 需重置。
-2. 容器内换 TUNA 源 → `add-apt-repository ppa:opm/ppa && apt install flow`（PPA 不可达则从 `ppa.launchpadcontent.net/opm/ppa/ubuntu/pool/main/o/opm-simulators/` 直接 curl .deb）。
-3. 宿主 `curl` 下载 SPE1 deck（github 直连可达）→ `flow SPE1CASE1.DATA` ×10 计时 + Norne ×1 计时。
-4. 数字回填本票与 charter Q8 → 拍板 M2 扫参规模 N（M2-T1 编排器参数）。
+## 扫参规模结论（喂给 M2-T1 编排器）
 
-## 并行选项（Owner 可任选替代）
-
-- **路径 B**：GitHub Actions ubuntu runner 经 PPA 实测（需建远端仓，外发动作）。
-- **路径 C**：任意可 SSH 的 Linux 服务器，跑本票第 2–3 步同样命令即可。
-
-## 实测产出物（解除挂起后）
-
-- [ ] SPE1 单次耗时 ×10 + Norne 单次耗时 ×1 记录入本票与 charter Q8
-- [ ] 据此拍板 M2 扫参规模 N 与是否需要并行
+- **Norne 级精算：N=50 串行 ≈ 2.2 h（一夜档）**；本机 4–8 路并行可压至 0.5 h 内。
+- 建议扫参**分两档**：粗扫用 SPE1 级简模型（千次 ≈ 8 min）定参数域，精扫用 Norne 级 N=50 复核——M2-T1 按此设计编排器参数。
+- 验收：~~SPE1 单次耗时 ×10 + Norne ×1 记录~~ ✅；~~拍板扫参规模 N~~ ✅（50，分粗/精两档）

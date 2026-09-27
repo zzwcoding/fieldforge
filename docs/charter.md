@@ -79,7 +79,7 @@
 | Q5 | 真实数据 license 对生成物的传导 | 需逐条读 Volve/FORCE/Norne 原始许可条款 |
 | Q6 | 第一个内部用户与验收场景 | 候选：teach-petro-agent 教学/面试演示（可为 Petro-Agent 平台叙事供数）；待 Owner 定 |
 | Q7 | LLM 层模型选型（云端 vs 国产化/本地化约束） | 待定，M4 前拍板即可 |
-| Q8 | 扫参算力成本（油藏模拟单次运行分钟–小时级） | **路径 A 深度执行后挂起（2026-09-27，票 [M2-T0](../tickets/M2-T0-env-feasibility.md)）**：定论——OPM 无 Docker 官方镜像、无 macOS 二进制，唯一直达渠道是 Ubuntu PPA；本机已配镜像加速并验证 curl 逐 blob 组装路线（ubuntu:24.04 已入本地镜像库），但 **Docker Desktop 容器子系统挂死（docker create 都卡）阻断**，需 Owner 在 GUI 层检查/重置；或转路径 B（GitHub Actions）/ C（SSH Linux 服务器）实测 |
+| Q8 | 扫参算力成本（油藏模拟单次运行分钟–小时级） | **实测完成（2026-09-27，票 [M2-T0](../tickets/M2-T0-env-feasibility.md)）**：本机容器原生 arm64 + flow 2026.04（OPM PPA）——SPE1 级 0.45 s/次，Norne 全油田 164 s/次。扫参规模拍板：**粗/精两档**——粗扫 SPE1 级千次 ≈ 8 min，精扫 Norne 级 N=50 串行 ≈ 2.2 h（可并行再压）。环境配方已固化进 T0 票（ubuntu:24.04 arm64 容器 + PPA + libopm-simulators-bin） |
 
 ## 8. 决策记录
 
