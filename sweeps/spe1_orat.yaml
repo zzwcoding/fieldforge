@@ -1,0 +1,22 @@
+# M2-T1 演示扫参：SPE1 教学级算例 · 生产井油目标产率 ORAT 三档
+# 运行：python3 -m fieldforge sweep --sweep sweeps/spe1_orat.yaml --out out/sweep-spe1-orat
+# 前置：bash scripts/prepare_flow_image.sh（构建 fieldforge/flow:2026.04，GPL 组件独立容器）
+# 精扫（Norne 级 N=50）复用同一配方结构：换 template 与参数域即可，见 tickets/M2-T0。
+sweep: spe1-orat
+template: fieldforge/physics/templates/SPE1CASE1.DATA
+well_id: SYN-PROD
+deck_well: PROD
+summary_keywords: [WOPR, WWPR, WGPR, WBHP]
+params:
+  - name: orat
+    regex: "('PROD'\\s+'OPEN'\\s+'ORAT'\\s+)([0-9]+)"
+    values: [15000, 20000, 25000]
+units:
+  # deck 为 FIELD 单位制（第 46 行 FIELD 关键字）；系数 = 原始单位 → schema 单位
+  oil:      {from: stb/d,  to: t/d,       factor: 0.13514}     # 0.158987 m³/stb × 0.85 t/m³
+  water:    {from: stb/d,  to: m3/d,      factor: 0.158987}
+  gas:      {from: Mscf/d, to: 10^4 m3/d, factor: 2.83168e-6}  # 28.3168 m³/Mscf ÷ 1e4
+  pressure: {from: psia,   to: MPa,       factor: 0.00689476}
+container:
+  image: fieldforge/flow:2026.04
+  timeout_s: 600

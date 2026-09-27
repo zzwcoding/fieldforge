@@ -17,7 +17,16 @@ def main(argv=None) -> int:
     g.add_argument("--seed", type=int, default=None, help="随机种子（覆盖配方内 seed）")
     g.add_argument("--out", default="out", help="输出目录（默认 ./out）")
     g.add_argument("--format", choices=["csv", "parquet"], default=None, help="输出格式（默认取配方声明）")
+    s = sub.add_parser("sweep", help="物理扫参（OPM Flow 容器，GPL 组件独立进程）")
+    s.add_argument("--sweep", required=True, help="扫参配方 YAML 路径")
+    s.add_argument("--out", default=None, help="输出目录（默认 out/sweep-<name>）")
     args = parser.parse_args(argv)
+    if args.command == "sweep":
+        return _cmd_sweep(args)
+    return _cmd_generate(args)
+
+
+def _cmd_generate(args) -> int:
 
     try:
         recipe = load_recipe(args.recipe)
@@ -64,3 +73,22 @@ def main(argv=None) -> int:
         print(f"  {item['file']:<26}{item['rows']:>6} 行")
     print(f"  {'manifest.json':<26}含合成数据声明 / 单位表 / 符合性结论")
     return 0
+
+
+def _cmd_sweep(args) -> int:
+    from .physics.flow_adapter import SweepError, load_sweep, run_sweep
+
+    try:
+        spec = load_sweep(args.sweep)
+    except SweepError as e:
+        print(f"配置错误：{e}", file=sys.stderr)
+        return 2
+    out = Path(args.out) if args.out else Path("out") / f"sweep-{spec.name}"
+    manifest = run_sweep(spec, out)
+    ok = sum(1 for s in manifest["solutions"] if s["rc"] == 0)
+    total = len(manifest["solutions"])
+    print(f"扫参 {spec.name}：{ok}/{total} 方案成功 → {out}/")
+    for s in manifest["solutions"]:
+        mark = "✓" if s["rc"] == 0 else "✗"
+        print(f"  {mark} {s['solution']} {s['params']} rc={s['rc']} {s['wall_s']}s rows={s.get('rows', '-')}")
+    return 0 if ok == total else 1
