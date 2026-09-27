@@ -14,3 +14,6 @@ outputs:
 freshness:
   tier: offline
   watermark: T-1
+gate:
+  enabled: true
+  enforce: true   # 干净基线必须过闸——未过闸不出库

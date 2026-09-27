@@ -376,6 +376,29 @@ entities:
         type: date
         description: 响应起始日
 
+  sensor_reading_subdaily:
+    description: 亚日传感器读数（P2-T3 拍板：分层采样——2 口重点井 15 分钟档全期，96 读数/日/通道；全量日度走 sensor_reading；交付建议 Parquet）
+    primary_key: [channel_id, ts]
+    model: subdaily_sensor_readings
+    model_params:
+      wells_limit: 2
+      interval_minutes: 15
+    fields:
+      well_id:
+        type: fk
+        fk: {entity: well_info, field: well_id}
+        description: 所属井（重点井样本）
+      channel_id:
+        type: fk
+        fk: {entity: sensor_channel, field: channel_id}
+        description: 传感器通道
+      ts:
+        type: datetime
+        description: 读数时间戳（15 分钟粒度）
+      value:
+        type: float
+        description: 读数值（通道量程内截断；停机时段整段静稳）
+
   sensor_reading:
     description: 传感器日度读数（120 井 × 3 通道 × 365 日；秒级/15 分钟档属 P2）
     primary_key: [channel_id, reading_date]

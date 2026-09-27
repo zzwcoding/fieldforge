@@ -14,6 +14,9 @@ outputs:
 freshness:
   tier: offline
   watermark: T-1
+gate:
+  enabled: true
+  enforce: false  # 脏特征交付物按定义含违例：闸门 report-only，挂样本正是其交付价值
 injection:
   dirty_mode: true
   seed: 3001

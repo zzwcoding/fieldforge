@@ -68,7 +68,7 @@ class P1DirtyAndRules(unittest.TestCase):
         self.assertEqual(self.clean_report["summary"]["overall"], "pass")
         for rid in ("r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r12"):
             self.assertEqual(self._rule(self.clean_report, rid)["status"], "pass", rid)
-        self.assertEqual(self._rule(self.clean_report, "r11")["status"], "skipped")
+        self.assertEqual(self._rule(self.clean_report, "r11")["status"], "pass")  # P2-T3 亚日接入后启用
 
     def test_dirty_dataset_hits_target_rules(self):
         """每条注入的脏特征都被对应规则逮住——挂样本齐备实证。"""

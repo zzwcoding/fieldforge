@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-FIELD_TYPES = {"string", "enum", "date", "float", "integer", "fk"}
+FIELD_TYPES = {"string", "enum", "date", "datetime", "float", "integer", "fk"}
 
 
 class SchemaError(ValueError):
@@ -58,6 +58,7 @@ class Recipe:
     counts: dict
     injection: dict
     freshness: dict
+    gate: dict
     fmt: str
     path: str
 
@@ -148,6 +149,7 @@ def load_recipe(path: str | Path) -> Recipe:
         raw.get("counts") or {},
         raw.get("injection") or {},
         raw.get("freshness") or {},
+        raw.get("gate") or {},
         fmt,
         str(path),
     )

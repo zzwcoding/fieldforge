@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 _MAX_REPORT = 50
 
@@ -63,6 +63,12 @@ def _check_value(ent_name: str, i: int, fname: str, fs, val, fk_targets, dirty_o
             date.fromisoformat(str(val))
         except ValueError:
             return f"{ent_name}[{i}].{fname}={val!r} 不是 ISO 日期"
+        return None
+    if t == "datetime":
+        try:
+            datetime.fromisoformat(str(val))
+        except ValueError:
+            return f"{ent_name}[{i}].{fname}={val!r} 不是 ISO 时间戳"
         return None
     if t == "float":
         if isinstance(val, bool) or not isinstance(val, (int, float)):

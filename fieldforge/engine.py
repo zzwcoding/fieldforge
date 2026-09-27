@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import math
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from importlib import resources
 
 from .schema import EntitySpec, Recipe, Schema
@@ -126,6 +126,7 @@ class Engine:
             "tpa_equip_status": self._model_tpa_equip_status,
             "tpa_monthly_settlement": self._model_tpa_monthly_settlement,
             "tpa_injection_connection": self._model_tpa_injection_connection,
+            "subdaily_sensor_readings": self._model_subdaily_sensor_readings,
         }
         if ent.model not in dispatch:
             raise NotImplementedError(f"未知模型：{ent.model}")
@@ -385,6 +386,51 @@ class Engine:
                 rows.append({"injector_well_id": w["well_id"], "producer_well_id": wid,
                              "split_coefficient": round(share / 100.0, 2),
                              "response_start_date": resp})
+        return rows
+
+    def _model_subdaily_sensor_readings(self, ent: EntitySpec) -> list[dict]:
+        """P2-T3 亚日读数（拍板：分层采样）：前 wells_limit 口 EW 重点井 × 15 分钟档全期。
+
+        日内曲线 = 日度骨架状态 × 96 读数 + 高频微噪声；停机日整段静稳常值。
+        交付建议 Parquet（~21 万行/2 井/年）；规则 11（零值 2 小时告警）在本表启用。
+        """
+        p = ent.model_params
+        limit = int(p.get("wells_limit", 2))
+        step = int(p.get("interval_minutes", 15))
+        per_day = 24 * 60 // step
+        rows = []
+        ledgers: dict[str, list[dict]] = {}
+        for r in self.tables["oil_production_daily"]:
+            ledgers.setdefault(r["well_id"], []).append(r)
+        for w in self._tpa_wells("EW")[:limit]:
+            wid = w["well_id"]
+            ledger = ledgers.get(wid, [])
+            oil_max = max((r["oil_output"] for r in ledger), default=0.0) or 1.0
+            for ch in self.tables["sensor_channel"]:
+                if ch["well_id"] != wid:
+                    continue
+                span = ch["range_max"] - ch["range_min"]
+                if ch["channel_code"] == "WHT":
+                    flow_frac, static_frac = self.rng.uniform(0.50, 0.70), self.rng.uniform(0.18, 0.25)
+                elif ch["channel_code"] == "CGP":
+                    flow_frac, static_frac = self.rng.uniform(0.60, 0.80), self.rng.uniform(0.60, 0.70)
+                else:
+                    flow_frac, static_frac = self.rng.uniform(0.55, 0.75), self.rng.uniform(0.60, 0.70)
+                sigma = span * 0.005
+                for r in ledger:
+                    down = r["open_days"] == 0.0
+                    base = ch["range_min"] + (static_frac if down
+                                              else flow_frac * (r["oil_output"] / oil_max)) * span
+                    day0 = datetime.combine(r["prod_date"], time.min)
+                    for k in range(per_day):
+                        if down:
+                            value = base  # 停机时段整段静稳
+                        else:
+                            value = min(max(base + self.rng.gauss(0.0, sigma),
+                                            ch["range_min"]), ch["range_max"])
+                        rows.append({"well_id": wid, "channel_id": ch["channel_id"],
+                                     "ts": day0 + timedelta(minutes=k * step),
+                                     "value": round(value, 3)})
         return rows
 
     def _model_tpa_monthly_settlement(self, ent: EntitySpec) -> list[dict]:

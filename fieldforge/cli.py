@@ -89,6 +89,23 @@ def _cmd_generate(args) -> int:
     for item in manifest["entities"]:
         print(f"  {item['file']:<26}{item['rows']:>6} 行")
     print(f"  {'manifest.json':<26}含合成数据声明 / 单位表 / 符合性结论")
+    if recipe.gate.get("enabled"):
+        from . import evaluate as gate
+        report = gate.evaluate(out_dir)
+        (out_dir / "evaluation.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        m = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+        m["gate"] = {"overall": report["summary"]["overall"],
+                     "summary": report["summary"],
+                     "enforce": bool(recipe.gate.get("enforce"))}
+        (out_dir / "manifest.json").write_text(
+            json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        s = report["summary"]
+        print(f"  闸门：overall={s['overall']}（pass {s['pass']} · warn {s['warn']} · "
+              f"fail {s['fail']} · skipped {s['skipped']}）→ evaluation.json")
+        if recipe.gate.get("enforce") and s["overall"] == "fail":
+            print("  未过闸（enforce=true）——『未过闸不出库』语义返回失败", file=sys.stderr)
+            return 1
     return 0
 
 

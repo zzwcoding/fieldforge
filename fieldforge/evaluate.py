@@ -40,8 +40,12 @@ def _load_data(data_dir: Path) -> tuple[dict, dict[str, list[dict]]]:
     data: dict[str, list[dict]] = {}
     for ent in manifest["entities"]:
         f = data_dir / ent["file"]
-        with f.open(newline="", encoding="utf-8") as fh:
-            data[ent["entity"]] = list(csv.DictReader(fh))
+        if f.suffix == ".parquet":  # Parquet 交付态（生成值已序列化为字符串，与 CSV 同构）
+            import pyarrow.parquet as pq
+            data[ent["entity"]] = pq.read_table(f).to_pylist()
+        else:
+            with f.open(newline="", encoding="utf-8") as fh:
+                data[ent["entity"]] = list(csv.DictReader(fh))
     return manifest, data
 
 
@@ -392,9 +396,25 @@ def _platform_rules(data: dict) -> list[dict]:
                          "pass" if worst < 30 else "warn", {"longest_constant_run": worst},
                          "判据=告警级（warn），恒值窗口属仪表卡死信号"))
 
-    # 规则 11 实时域：传感器零值 2 小时告警（教学演绎，日粒度数据不可判）
-    rules.append(_metric("r11", "规则", "规则11 传感器零值 2 小时告警", "skipped", None,
-                         "实时域规则（tpa 设定书自标教学演绎）；日粒度数据不可判，接入 15 分钟档后启用"))
+    # 规则 11 实时域：传感器零值 2 小时告警——亚日数据（15 分钟档）启用，8 连零即告警
+    sub = data.get("sensor_reading_subdaily", [])
+    if sub:
+        series: dict[str, list] = {}
+        for r in sub:
+            series.setdefault(r.get("channel_id"), []).append(_num(r, "value") or 0.0)
+        max_zero_run = 0
+        for vals in series.values():
+            run = 0
+            for v in vals:
+                run = run + 1 if v == 0.0 else 0
+                max_zero_run = max(max_zero_run, run)
+        rules.append(_metric("r11", "规则", "规则11 传感器零值 2 小时告警",
+                             "pass" if max_zero_run < 8 else "fail",
+                             {"max_zero_run": max_zero_run, "threshold_readings": 8},
+                             "亚日数据启用（15 分钟档 ×8 读数 = 2 小时）；tpa 设定书自标教学演绎"))
+    else:
+        rules.append(_metric("r11", "规则", "规则11 传感器零值 2 小时告警", "skipped", None,
+                             "实时域规则（tpa 设定书自标教学演绎）；日粒度数据不可判，接入 15 分钟档后启用"))
 
     # 规则 12 一致性：区块月物质平衡偏差 ≤3%（结算净重 vs 产量合计 ×(1−损耗)）
     block_of = {w.get("well_id"): w.get("block_name") for w in data.get("well_info", [])}

@@ -66,6 +66,7 @@
 | **P0 数据合同对齐**（✅ 2026-09-27 收口，[P0-T1](../tickets/P0-T1-contract-alignment.md)） | `schemas/tpa-contract-v0.1.yaml` 对齐 teach-petro-agent 生产域 8 表字典（含主数据 profile 120 井=86 EW+34 IW、区块密度表、行业编码对照）；与 core-v0 并存零回归 | 一条命令 11 表 175,842 行，oil_production_daily 31,390 行正对齐平台大结果锚点；26 测试稳定全绿 |
 | **P1 脏特征与规则族**（✅ 2026-09-27 收口，[P1-T1/T2/T3](../tickets/)） | T1 脏特征注入器家族 10 类（v2.0.0，nullable/dirty_mode 承接）+ T2 平台规则族 r1–r12 机判（判据逐字对齐 tpa 设定书 §4）+ T3 freshness/批次元数据入 manifest | 双样例随仓：干净基线 12 规则零误报 pass；脏特征交付物 9 fail + 1 warn 全数被逮、计数与注入账吻合 |
 | **P2 对接深化**（T1/T2/T4 ✅ 2026-09-27；T3 亚日粒度拆票待拍板，[P2-T1..T4](../tickets/)） | T1 注采受效关系（Σ=1 + 闸门 r_eff，注采比/增油劈分数据前提）+ T2 Parquet 载体启用（pyarrow 轮子直解）+ T4 M4 班报模板叙述化（数值一致性机判回流，LLM 叙述化待 Q7 选型） | 65 组受效关系 Σ=1 全过；core 配方 Parquet 回读 365 行；N-01 井 7 天班报语料机判全过随仓 |
+| **P3 流程与合规**（✅ 2026-09-27 收口，[P3-T1/T2](../tickets/)；P2-T3 亚日粒度 ✅ 同日收口） | T1 生成时自动过闸（gate enabled/enforce，未过闸 exit 1；Parquet 交付态同效）+ T2 Q5 license 审阅（**FORCE 2020/NLOD 2.0 首选**：§2 允许修改+组合+再分发、§5 署名+改动声明=合成声明；Volve 用途限定词缓一步）+ P2-T3 亚日传感器（分层采样拍板：2 重点井 15 分钟档 210,240 行，规则 11 启用） | Parquet 全合同 12 表过闸 enforce 生效；干净基线 43 测试全绿；锚点接入只剩下载与署名 |
 | **M4 LLM 文档层** | L4 班报/工单叙述化 + schema 校验回流 | 同一口井的结构化点表 + 配套文档语料 |
 | **M5 第二梯队** | 测井曲线（welly/bruges 物理合成）、合成地震（devito 正演） | 另立票再拆 |
 
