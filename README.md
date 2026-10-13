@@ -9,6 +9,8 @@ A domain-specific synthetic data generator for oil & gas — production ledgers,
 - **状态**：v0.x，单维护者。M0–M3 + P0–P3 + M5 共九个里程碑全部收口，48 个测试稳定全绿。
 - **License**：Apache-2.0（详见下方数据声明）。
 
+![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776AB?logo=python&logoColor=white) ![tests](https://img.shields.io/badge/tests-48_passed-16A34A) ![License](https://img.shields.io/badge/License-Apache--2.0-F59E0B) ![产出](https://img.shields.io/badge/全量-12表·120井·~46万行-0EA5E9)
+
 ## 项目地图（同一项目的各部分 GitHub 仓）
 
 本项目按「设计真源 → 平台实现 → 数据面 → 合成数据」分仓协作，各仓独立 git，GitHub 平级发布：
@@ -28,7 +30,22 @@ A domain-specific synthetic data generator for oil & gas — production ledgers,
 - 油气领域只有活跃的**物理引擎**（OPM Flow、MRST、devito、neqsim），**不存在**任何框架级的"油田生产时序/设备传感器/钻井参数"合成数据项目——搜到的同类最高仅 2★；
 - 缺的那一层（领域 schema + 物理一致性 + 脏特征交付）就是 fieldforge 的位置。
 
-## 特性
+## 功能架构（L0–L5 分层）
+
+```mermaid
+flowchart TB
+    l0["L0 领域 schema<br/>合同包 + 通用包（声明式：字段/单位/枚举/量程/主键）"]
+    l0 --> l1["L1 规则 + 随机打底<br/>实体字典 · 字段填充"]
+    l1 --> l2["L2 物理引擎产数<br/>OPM Flow 独立容器扫参 + 噪声/工况注入"]
+    l2 --> l3["L3 统计/深度生成补分布<br/>接口已留，可插拔"]
+    l3 --> l4["L4 LLM 文档层<br/>班报叙述化（模板已落地，LLM 接口已留）"]
+    l4 --> l5["L5 评估闸门<br/>质量/隐私/物理一致性三族 + 平台规则 r1–r12<br/>未过闸不出库"]
+    l5 --> out["CSV / Parquet 交付<br/>manifest 全程记账"]
+```
+
+未过闸的数据不出库：`generate` 自动过闸，`enforce: true` 时 fail 即 exit 1。
+
+### 特性
 
 | | 能力 | 说明 |
 |---|---|---|
@@ -40,6 +57,44 @@ A domain-specific synthetic data generator for oil & gas — production ledgers,
 | 📝 | **班报叙述化 + 机判回流** | 结构化事实 → 班报语料（模板 v0.1，LLM 接口已留），逐字段数值一致性机判，对不上台账的语料不得出库 |
 | 🔁 | **确定性再生** | 同 seed 字节级复现（跨运行、跨表）；manifest 全程记账（seed / schema 版本 / 参数 / 单位表 / 闸门结论 / freshness） |
 | 💾 | **CSV / Parquet 双载体** | Parquet 交付态下闸门同样生效 |
+
+## 文件架构
+
+```
+fieldforge/
+├── fieldforge/           # 包本体
+│   ├── cli.py · __main__.py   # 命令面：generate / evaluate / narrate / sweep
+│   ├── schema.py         # schema 合同装载（字段/单位/枚举/量程/主键声明式面）
+│   ├── engine.py         # 生成引擎（实体字典 · 字段填充 · 日度骨架）
+│   ├── physics.py        # 物理打底（OPM Flow 扫参对接 + 噪声/工况注入）
+│   ├── inject.py         # 脏特征注入器家族（配方化 · 可复现 · 计数入 manifest）
+│   ├── evaluate.py · check.py # 评估闸门（三族指标 + 平台规则 r1–r12，JSON/HTML 报告）
+│   ├── narrate.py        # 班报叙述化 + 逐字段数值一致性机判回流
+│   ├── emit.py           # CSV / Parquet 双载体输出
+│   ├── seeds.py          # 确定性再生（同 seed 字节级复现）
+│   └── serve/            # API 服务（Docker Compose 交付）
+├── schemas/              # tpa-contract-v0.1.yaml（平台生产域 8 表逐字段对齐）· core-v0.yaml（通用油田域）
+├── recipes/ · sweeps/    # 场景配方 / 物理扫参配方
+├── deploy/               # 单机 Docker Compose（fieldforge-api + postgres + redis + nginx(80)）· init-server.sh
+├── docs/                 # charter 立项稿 · prd · integration-requirements · licenses-real-anchor ·
+│                         #   research/ 生态调研 · reports/ 闸门样例报告与班报语料样例
+├── tickets/              # 全部施工票（含验收记录与坑存档）
+├── tests/                # 48 个测试（unittest discover）
+├── scripts/              # 运维脚本（物理镜像准备 · 镜像镜像源装载等）
+└── out-*/                # generate 运行输出（manifest.json 记账：seed/schema 版本/参数/闸门结论）
+```
+
+## 技术选型
+
+| 层 | 选型 | 在项目中的角色 |
+|---|---|---|
+| 运行时 | Python ≥ 3.10 | 生成器本体 |
+| 基础依赖 | PyYAML | schema 合同包与配方装载 |
+| 可选依赖 | pyarrow（Parquet 交付）· resdata（物理扫参汇总解析） | 按需启用 |
+| 物理引擎 | OPM Flow（GPL，独立容器） | 只经命令行与文件交换——SPE1 0.45s / Norne 全油田 164s 实测 |
+| 叙述化 | 模板 v0.1（LLM 接口已留） | 班报语料生产，机判回流把门 |
+| 服务交付 | Docker Compose：fieldforge-api + postgres + redis + nginx(80) | 单机部署（见下节） |
+| 测试 | unittest（48 例稳定全绿） | 九里程碑收口基线 |
 
 ## 快速开始
 
@@ -85,19 +140,6 @@ curl http://<服务器IP>/healthz
 **禁止用于储量申报、生产决策等任何真实业务场景。**
 该声明强制写入 README、输出 manifest 与评估报告三处，缺失即验收不通过。
 
-## 架构（L0–L5）
-
-```
-L0 领域 schema（合同包 + 通用包，声明式：字段/单位/枚举/量程/主键）
-L1 规则+随机打底（实体字典、字段填充——faker/mimesis 同思路的油气 locale）
-L2 物理引擎产数（OPM Flow 独立容器扫参 + 噪声/工况注入）
-L3 统计/深度生成补分布（接口已留，fg-data-synthetic / mostlyai 同接口可插拔）
-L4 LLM 文档层（模板叙述化已落地，LLM 叙述化接口已留）
-L5 评估闸门（质量 / 隐私 / 物理一致性三族指标插件 + 平台规则族，未过闸不出库）
-```
-
-设计取舍与选型依据详见 [docs/charter.md](docs/charter.md)（含九个里程碑的决策记录）与 [docs/research/](docs/research/)（合成数据生态调研）。
-
 ## 文档地图
 
 | 路径 | 内容 |
@@ -110,6 +152,8 @@ L5 评估闸门（质量 / 隐私 / 物理一致性三族指标插件 + 平台�
 | [tickets/](tickets/) | 全部施工票（含验收记录与坑存档） |
 | [schemas/](schemas/) · [recipes/](recipes/) · [sweeps/](sweeps/) | schema 合同包 / 场景配方 / 物理扫参配方 |
 
+设计取舍与选型依据详见 [docs/charter.md](docs/charter.md)（含九个里程碑的决策记录）与 [docs/research/](docs/research/)（合成数据生态调研）。
+
 ## 坑存档（踩过的都在票里）
 
 - OPM 官方**没有** Docker 镜像与 macOS 二进制，Ubuntu PPA 是唯一直达渠道，PPA 二进制包名是 `libopm-simulators-bin`；
@@ -117,9 +161,3 @@ L5 评估闸门（质量 / 隐私 / 物理一致性三族指标插件 + 平台�
 - Docker Desktop 曾出现容器子系统挂死（`docker create` 卡死），需 GUI 层排查；
 - Go 网络栈（docker/crane）在本机曾极慢而 libcurl 秒通——绕行方案见 [scripts/docker-load-via-mirror.sh](scripts/docker-load-via-mirror.sh)（curl 逐 blob + sha256 校验 + OCI 组装 + docker load）；
 - 本机 pip 因 truststore/macOS 26 兼容 bug 不可联网安装，依赖以轮子直解方式就位。
-
-## License
-
-[Apache-2.0](LICENSE)。
-
-**数据声明**：本项目生成的全部数据为合成数据。种子字典与岩石物理图版值为虚构/教学典型值（取形自内部教学设定，其自身标注虚构），不代表任何真实油田；FORCE 2020 / Volve 等真实数据集**未**被使用。OPM Flow 经 Ubuntu PPA 在独立容器内运行，宿主仅做命令行与文件交换（GPL-3.0 合规集成）。
