@@ -9,6 +9,17 @@ A domain-specific synthetic data generator for oil & gas — production ledgers,
 - **状态**：v0.x，单维护者。M0–M3 + P0–P3 + M5 共九个里程碑全部收口，48 个测试稳定全绿。
 - **License**：Apache-2.0（详见下方数据声明）。
 
+## 项目地图（同一项目的各部分 GitHub 仓）
+
+本项目按「设计真源 → 平台实现 → 数据面 → 合成数据」分仓协作，各仓独立 git，GitHub 平级发布：
+
+| 仓库 | 角色 | 可见性 |
+|---|---|---|
+| [petro-agent-platform](https://github.com/zzwcoding/petro-agent-platform) | 平台实现仓：后端 `app/`＋`appv2/` · 前端 `web/` · 本体 `ontology/`（已并入） | 公开 |
+| [teach-petro-agent-public](https://github.com/zzwcoding/teach-petro-agent-public) | 设计/教学真源仓：合同册 specs/api · ADR 链 · 业务设定 · 架构大图 · 前端原型 | 公开 |
+| [tpa-data-plane](https://github.com/zzwcoding/tpa-data-plane) | 数据面仓：独立数据服务（进料→清洗→出汇总→质检→报水位）——本仓是它的测试数据供给方 | 公开 |
+| **本仓** [fieldforge](https://github.com/zzwcoding/fieldforge) | 油气领域合成数据生成工作台 | 公开 |
+
 ## 为什么是空白
 
 2026-09 的 GitHub 生态调研（[docs/research/](docs/research/)，40+ 仓库逐一核实）确认：
